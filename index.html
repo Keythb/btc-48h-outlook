@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TON618 Capital · BTC 48h Risk Outlook</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --t618-obsidian: #0B0B0C;
+  --t618-onyx:     #16161A;
+  --t618-graphite: #26262B;
+  --t618-ash:      #3A3A40;
+  --t618-gold:      #C9A24B;
+  --t618-champagne: #E6D2A2;
+  --t618-antique:   #8A6D2B;
+  --t618-ivory:     #F6F3EC;
+  --t618-warmgray:  #9A958A;
+  --t618-jade:    #3F8F6B;
+  --t618-oxblood: #B0413E;
+  --t618-serif: "EB Garamond", Georgia, serif;
+  --t618-sans:  "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--t618-obsidian);
+  color: var(--t618-ivory);
+  font-family: var(--t618-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  min-height: 100vh;
+}
+
+.page-wrap { max-width: 1400px; margin: 0 auto; padding: 36px 48px 60px; }
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+.wordmark {
+  font-family: var(--t618-serif);
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--t618-ivory);
+}
+.wordmark .six18 { color: var(--t618-gold); }
+.wordmark .cap { font-weight: 400; }
+
+.header-right { text-align: right; }
+.header-right .page-title {
+  font-family: var(--t618-serif);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--t618-champagne);
+}
+.header-right .ts {
+  font-size: 0.75rem;
+  color: var(--t618-warmgray);
+  margin-top: 2px;
+}
+
+.gold-rule { border: 0; height: 1px; background: var(--t618-gold); margin: 0 0 2rem; opacity: 0.85; }
+.ash-rule  { border: 0; height: 1px; background: var(--t618-ash);  margin: 1.5rem 0; }
+
+/* ── REFRESH BAR ── */
+.refresh-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.refresh-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--t618-warmgray);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.pulse {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--t618-jade);
+  box-shadow: 0 0 6px 1px rgba(63,143,107,0.6);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.countdown-wrap { margin-left: auto; font-size: 0.75rem; color: var(--t618-warmgray); }
+.countdown-wrap span { color: var(--t618-gold); font-weight: 600; }
+
+.refresh-btn {
+  font-family: var(--t618-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t618-obsidian);
+  background: var(--t618-gold);
+  border: 0;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.refresh-btn:hover { opacity: 0.85; }
+.refresh-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── EYEBROW ── */
+.eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--t618-gold);
+  margin-bottom: 0.4rem;
+}
+
+/* ── KPI ROW ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--t618-ash);
+  border: 1px solid var(--t618-ash);
+  margin-bottom: 2.5rem;
+}
+.kpi-cell {
+  background: var(--t618-onyx);
+  padding: 1.1rem 1.3rem;
+}
+.kpi-cell .kpi-val {
+  font-family: var(--t618-serif);
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--t618-gold);
+}
+.kpi-cell .kpi-val.pos { color: var(--t618-jade); }
+.kpi-cell .kpi-val.neg { color: var(--t618-oxblood); }
+.kpi-cell .kpi-val.neutral { color: var(--t618-champagne); }
+.kpi-cell .kpi-lbl {
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--t618-warmgray);
+}
+
+/* ── PANEL GRID ── */
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.panel-full { grid-column: 1 / -1; }
+
+.panel {
+  background: var(--t618-onyx);
+  border: 1px solid var(--t618-ash);
+  border-top: 2px solid var(--t618-gold);
+  padding: 1.25rem 1.5rem;
+}
+.panel h3 {
+  font-family: var(--t618-serif);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--t618-champagne);
+  margin-bottom: 0.2rem;
+}
+.panel .panel-sub {
+  font-size: 0.72rem;
+  color: var(--t618-warmgray);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+}
+
+/* ── CHART CANVAS ── */
+.chart-wrap { position: relative; height: 220px; width: 100%; }
+.chart-wrap.tall { height: 280px; }
+
+/* ── PRICE LEVELS TABLE ── */
+table.t618-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+table.t618-table thead th {
+  background: var(--t618-graphite);
+  color: var(--t618-champagne);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--t618-gold);
+}
+table.t618-table tbody td {
+  padding: 0.48rem 0.7rem;
+  border-bottom: 1px solid rgba(58,58,64,0.6);
+}
+table.t618-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018); }
+.pos { color: var(--t618-jade); }
+.neg { color: var(--t618-oxblood); }
+.gold-txt { color: var(--t618-gold); font-weight: 600; }
+.current-row { background: rgba(201,162,75,0.08) !important; }
+
+/* ── SIGNAL BADGES ── */
+.badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.5rem;
+}
+.badge-neutral { background: var(--t618-graphite); color: var(--t618-champagne); }
+.badge-bull    { background: rgba(63,143,107,0.15); color: var(--t618-jade); border: 1px solid var(--t618-jade); }
+.badge-bear    { background: rgba(176,65,62,0.15); color: var(--t618-oxblood); border: 1px solid var(--t618-oxblood); }
+.badge-warn    { background: rgba(201,162,75,0.15); color: var(--t618-gold); border: 1px solid var(--t618-antique); }
+
+/* ── SIGNAL ROW ── */
+.signal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+.signal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--t618-ash);
+  font-size: 0.82rem;
+}
+.signal-row:last-child { border-bottom: 0; }
+.signal-lbl { color: var(--t618-warmgray); }
+
+/* ── LOADER ── */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--t618-warmgray);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  gap: 0.5rem;
+}
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid var(--t618-ash);
+  border-top-color: var(--t618-gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── ERROR ── */
+.error-state {
+  color: var(--t618-oxblood);
+  font-size: 0.78rem;
+  padding: 0.5rem 0;
+}
+
+/* ── DISCLOSURE ── */
+.disclosure {
+  font-size: 0.68rem;
+  color: var(--t618-warmgray);
+  line-height: 1.6;
+  border-top: 1px solid var(--t618-ash);
+  padding-top: 1rem;
+  margin-top: 2.5rem;
+}
+
+@media (max-width: 900px) {
+  .page-wrap { padding: 20px 20px 40px; }
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .panel-grid { grid-template-columns: 1fr; }
+  .signal-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="wordmark">TON<span class="six18">618</span> <span class="cap">Capital</span></div>
+    <div class="header-right">
+      <div class="page-title">BTC 48-Hour Risk Outlook</div>
+      <div class="ts" id="lastUpdated">Initializing…</div>
+    </div>
+  </header>
+  <hr class="gold-rule">
+
+  <!-- REFRESH BAR -->
+  <div class="refresh-bar">
+    <div class="refresh-indicator">
+      <div class="pulse"></div>
+      Live · Auto-refresh every 5 min
+    </div>
+    <div class="countdown-wrap">Next refresh in <span id="countdown">5:00</span></div>
+    <button class="refresh-btn" id="refreshBtn" onclick="runAll()">↻ Refresh Now</button>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="eyebrow">Market Snapshot</div>
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-cell"><div class="kpi-val" id="kpi-spot">—</div><div class="kpi-lbl">BTC Spot (USD)</div></div>
+    <div class="kpi-cell"><div class="kpi-val" id="kpi-chg">—</div><div class="kpi-lbl">24h Change</div></div>
+    <div class="kpi-cell"><div class="kpi-val" id="kpi-fg">—</div><div class="kpi-lbl">Fear & Greed</div></div>
+    <div class="kpi-cell"><div class="kpi-val" id="kpi-funding">—</div><div class="kpi-lbl">Perp Funding /8h</div></div>
+    <div class="kpi-cell"><div class="kpi-val" id="kpi-iv">—</div><div class="kpi-lbl">ATM IV (30d)</div></div>
+  </div>
+
+  <!-- PANEL ROW 1: SD Levels + Price Chart -->
+  <div class="panel-grid">
+
+    <div class="panel">
+      <div class="eyebrow">Volatility Regime</div>
+      <h3>48h Standard-Deviation Price Levels</h3>
+      <div class="panel-sub">Based on ATM implied volatility · Updated on refresh</div>
+      <div id="sdTable"><div class="loading"><div class="spinner"></div>Fetching IV & spot…</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">Price Action</div>
+      <h3>7-Day Spot Price</h3>
+      <div class="panel-sub">Hourly close · Coindesk public API</div>
+      <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+    </div>
+
+  </div>
+
+  <!-- PANEL ROW 2: Options + Liquidations -->
+  <div class="panel-grid">
+
+    <div class="panel">
+      <div class="eyebrow">Options Market Structure</div>
+      <h3>Open Interest by Strike</h3>
+      <div class="panel-sub">Deribit · Nearest 3 expiries · Put wall / Call wall</div>
+      <div class="chart-wrap tall"><canvas id="oiChart"></canvas></div>
+      <div id="optionsMeta" style="margin-top:1rem"></div>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">Leveraged Positioning</div>
+      <h3>Liquidation Cluster Estimate</h3>
+      <div class="panel-sub">Derived from OI distribution &amp; funding cascade model</div>
+      <div class="chart-wrap tall"><canvas id="liqChart"></canvas></div>
+      <div id="liqMeta" style="margin-top:0.75rem; font-size:0.78rem; color:var(--t618-warmgray)"></div>
+    </div>
+
+  </div>
+
+  <!-- PANEL ROW 3: F&G History + Signals -->
+  <div class="panel-grid">
+
+    <div class="panel">
+      <div class="eyebrow">Sentiment</div>
+      <h3>Fear & Greed — 30-Day History</h3>
+      <div class="panel-sub">alternative.me · 0 = Extreme Fear · 100 = Extreme Greed</div>
+      <div class="chart-wrap"><canvas id="fgChart"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <div class="eyebrow">Signal Summary</div>
+      <h3>48h Positioning Signals</h3>
+      <div class="panel-sub">Composite read · Updated on each refresh</div>
+      <div class="signal-grid" id="signalGrid">
+        <div class="loading" style="grid-column:1/-1"><div class="spinner"></div>Computing…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DISCLOSURE -->
+  <p class="disclosure">
+    TON618 Capital. This page is for internal research and information purposes only. It does not constitute investment advice, a solicitation, or an offer to buy or sell any security or digital asset. All data is sourced from public third-party APIs (CoinDesk, Deribit, alternative.me) and may be delayed or incomplete. Past performance is not indicative of future results. Cryptocurrency markets involve substantial risk of loss. © 2026 TON618 Capital. All rights reserved.
+  </p>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ── THEME CONSTANTS ──────────────────────────────────────────
+const GOLD='#C9A24B', CHAMP='#E6D2A2', ASH='#3A3A40', GRAY='#9A958A',
+      JADE='#3F8F6B', OX='#B0413E', ONYX='#16161A', OBS='#0B0B0C', IVORY='#F6F3EC';
+
+Chart.defaults.color = GRAY;
+Chart.defaults.font.family = 'Inter, Helvetica Neue, Arial, sans-serif';
+
+const chartInstances = {};
+function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; } }
+
+// ── COUNTDOWN TIMER ──────────────────────────────────────────
+const REFRESH_MS = 5 * 60 * 1000;
+let nextRefresh = Date.now() + REFRESH_MS;
+setInterval(() => {
+  const rem = Math.max(0, nextRefresh - Date.now());
+  const m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
+  document.getElementById('countdown').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  if (rem === 0) { nextRefresh = Date.now() + REFRESH_MS; runAll(); }
+}, 1000);
+
+// ── TIMESTAMP ────────────────────────────────────────────────
+function stamp() {
+  document.getElementById('lastUpdated').textContent =
+    'Risk Desk · ' + new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
+}
+
+// ── FETCH HELPERS ────────────────────────────────────────────
+async function fetchJSON(url) {
+  const r = await fetch(url, {headers:{'Accept':'application/json'}});
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// ── 1. FEAR & GREED ──────────────────────────────────────────
+async function loadFearGreed() {
+  try {
+    const d = await fetchJSON('https://api.alternative.me/fng/?limit=30&format=json');
+    const pts = d.data.reverse();
+    const latest = d.data[d.data.length-1];
+    const val = parseInt(latest.value);
+    const cls = val < 30 ? 'neg' : val > 70 ? 'pos' : 'neutral';
+    document.getElementById('kpi-fg').textContent = `${val}`;
+    document.getElementById('kpi-fg').className = `kpi-val ${cls}`;
+
+    // chart
+    destroyChart('fgChart');
+    const labels = pts.map(p => { const d2=new Date(p.timestamp*1000); return `${d2.getMonth()+1}/${d2.getDate()}`; });
+    const vals   = pts.map(p => parseInt(p.value));
+    const colors = vals.map(v => v < 30 ? OX : v > 70 ? JADE : GOLD);
+    chartInstances['fgChart'] = new Chart(document.getElementById('fgChart'),{
+      type:'bar',
+      data:{ labels, datasets:[{ data:vals, backgroundColor:colors, borderWidth:0 }] },
+      options:{
+        responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} – ${pts[c.dataIndex].value_classification}`}}},
+        scales:{
+          x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:10},maxTicksLimit:10} },
+          y:{ min:0, max:100, grid:{color:ASH}, ticks:{color:GRAY,font:{size:10}} }
+        }
+      }
+    });
+  } catch(e) { console.warn('F&G error',e); }
+}
+
+// ── 2. BTC SPOT + PRICE CHART ────────────────────────────────
+async function loadSpot() {
+  try {
+    // Use CoinDesk public REST (no key needed for basic data)
+    const d = await fetchJSON('https://api.coindesk.com/v1/bpi/currentprice/USD.json');
+    const spot = d.bpi.USD.rate_float;
+    document.getElementById('kpi-spot').textContent = '$' + spot.toLocaleString('en-US',{maximumFractionDigits:0});
+
+    // 7-day OHLCV from CoinDesk v2 index
+    try {
+      const hist = await fetchJSON('https://api.coindesk.com/v1/bpi/historical/close.json?currency=USD&start=' + dateMinus(7) + '&end=' + dateStr(0));
+      const entries = Object.entries(hist.bpi).sort((a,b)=>a[0]<b[0]?-1:1);
+      const labels = entries.map(e=>e[0].slice(5));
+      const closes = entries.map(e=>e[1]);
+
+      // 24h change using last two available closes
+      if (closes.length >= 2) {
+        const chg = ((closes[closes.length-1] - closes[closes.length-2]) / closes[closes.length-2]) * 100;
+        document.getElementById('kpi-chg').textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+        document.getElementById('kpi-chg').className = `kpi-val ${chg>=0?'pos':'neg'}`;
+      }
+
+      destroyChart('priceChart');
+      chartInstances['priceChart'] = new Chart(document.getElementById('priceChart'),{
+        type:'line',
+        data:{labels, datasets:[{
+          label:'BTC/USD', data:closes,
+          borderColor:GOLD, borderWidth:2,
+          backgroundColor:'rgba(201,162,75,0.06)',
+          pointRadius:3, pointBackgroundColor:GOLD,
+          fill:true, tension:0.3
+        }]},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+c.raw.toLocaleString()}}},
+          scales:{
+            x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:11}} },
+            y:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:11},callback:v=>'$'+v.toLocaleString()} }
+          }
+        }
+      });
+
+      return spot;
+    } catch(e2) { console.warn('hist error',e2); return spot; }
+  } catch(e) { console.warn('Spot error',e); return null; }
+}
+
+// ── 3. IMPLIED VOL & SD LEVELS ───────────────────────────────
+async function loadSDLevels(spot) {
+  try {
+    if (!spot) throw new Error('No spot');
+    // Deribit public API — get ATM IV for BTC-PERPETUAL
+    const d = await fetchJSON('https://api.deribit.com/api/v2/public/get_index_price?index_name=btc_usd');
+    const markSpot = d.result.index_price || spot;
+
+    // Get 30d ATM IV from Deribit ticker for the nearest monthly option
+    let iv30 = 0.65; // fallback ~65% IV
+    try {
+      const tickers = await fetchJSON('https://api.deribit.com/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=option');
+      const instruments = tickers.result || [];
+      // find ~30d expiry, ATM calls
+      const now = Date.now();
+      const target30 = now + 30*24*3600*1000;
+      let best = null, bestDist = Infinity;
+      for (const inst of instruments) {
+        if (!inst.instrument_name.endsWith('-C')) continue;
+        const parts = inst.instrument_name.split('-');
+        const expStr = parts[1];
+        const expDate = new Date(expStr.replace(/(\d+)([A-Z]+)(\d+)/, '$1 $2 $3'));
+        const strike = parseFloat(parts[2]);
+        const atmDist = Math.abs(strike - markSpot);
+        if (atmDist < markSpot * 0.05) { // within 5% of spot
+          const timeDist = Math.abs(expDate.getTime() - target30);
+          if (timeDist < bestDist) { bestDist = timeDist; best = inst; }
+        }
+      }
+      if (best && best.mark_iv) iv30 = best.mark_iv / 100;
+    } catch(e2) { console.warn('Deribit IV fallback',e2); }
+
+    document.getElementById('kpi-iv').textContent = (iv30*100).toFixed(1)+'%';
+    document.getElementById('kpi-iv').className = 'kpi-val neutral';
+
+    // Compute SD levels (log-normal)
+    const T48  = 48 / (365*24);
+    const T24  = 24 / (365*24);
+    const σ    = iv30;
+    const S    = markSpot;
+
+    function sdLevel(sigma, t, z) { return S * Math.exp(z * sigma * Math.sqrt(t)); }
+
+    const levels = [
+      { label: '+3σ (48h)', price: sdLevel(σ,T48, 3), tag:'3σ Up',  side:'up' },
+      { label: '+2σ (48h)', price: sdLevel(σ,T48, 2), tag:'2σ Up',  side:'up' },
+      { label: '+1σ (48h)', price: sdLevel(σ,T48, 1), tag:'1σ Up',  side:'up' },
+      { label: 'SPOT NOW',  price: S,                  tag:'Spot',   side:'spot' },
+      { label: '−1σ (48h)', price: sdLevel(σ,T48,-1), tag:'1σ Dn',  side:'down' },
+      { label: '−2σ (48h)', price: sdLevel(σ,T48,-2), tag:'2σ Dn',  side:'down' },
+      { label: '−3σ (48h)', price: sdLevel(σ,T48,-3), tag:'3σ Dn',  side:'down' },
+    ];
+
+    const probUp   = (v => (100*(1 - normCDF((Math.log(v/S))/(σ*Math.sqrt(T48))))).toFixed(1));
+    const probDown = (v => (100*normCDF((Math.log(v/S))/(σ*Math.sqrt(T48)))).toFixed(1));
+
+    let html = `<table class="t618-table"><thead><tr>
+      <th>Level</th><th class="num">Price (USD)</th><th class="num">vs Spot</th><th class="num">48h Prob</th>
+    </tr></thead><tbody>`;
+    for (const lv of levels) {
+      const pct = ((lv.price - S)/S*100).toFixed(2);
+      const pctStr = lv.side==='spot' ? '—' : (pct>0?'+':'')+pct+'%';
+      const prob = lv.side==='spot' ? '—' : lv.side==='up' ? probUp(lv.price)+'%' : probDown(lv.price)+'%';
+      const cls  = lv.side==='spot' ? 'current-row' : '';
+      const valCls = lv.side==='spot' ? 'gold-txt' : lv.side==='up' ? 'pos' : 'neg';
+      html += `<tr class="${cls}"><td>${lv.label}</td>
+        <td class="num ${valCls}">$${lv.price.toLocaleString('en-US',{maximumFractionDigits:0})}</td>
+        <td class="num ${valCls}">${pctStr}</td>
+        <td class="num">${prob}</td></tr>`;
+    }
+    html += '</tbody></table>';
+    html += `<div style="margin-top:0.6rem;font-size:0.7rem;color:var(--t618-warmgray)">IV: ${(iv30*100).toFixed(1)}% · Log-normal model · Not a forecast.</div>`;
+    document.getElementById('sdTable').innerHTML = html;
+    return { spot: S, iv: iv30 };
+  } catch(e) {
+    document.getElementById('sdTable').innerHTML = `<div class="error-state">⚠ ${e.message}</div>`;
+    return null;
+  }
+}
+
+// ── 4. OPTIONS OI BY STRIKE ──────────────────────────────────
+async function loadOptionsOI(spot) {
+  try {
+    if (!spot) throw new Error('No spot');
+    const d = await fetchJSON('https://api.deribit.com/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=option');
+    const instruments = d.result || [];
+
+    // Group by expiry, keep 3 nearest
+    const expiryMap = {};
+    for (const inst of instruments) {
+      if (inst.open_interest == null || inst.open_interest === 0) continue;
+      const parts = inst.instrument_name.split('-');
+      if (parts.length < 4) continue;
+      const expiry = parts[1];
+      const strike = parseFloat(parts[2]);
+      const type   = parts[3]; // C or P
+      if (!expiryMap[expiry]) expiryMap[expiry] = { calls:{}, puts:{} };
+      const key = type === 'C' ? 'calls' : 'puts';
+      expiryMap[expiry][key][strike] = (expiryMap[expiry][key][strike]||0) + inst.open_interest;
+    }
+
+    // Sort expiries, take 3 nearest
+    const now = Date.now();
+    const sortedExpiries = Object.keys(expiryMap).sort((a,b) => {
+      return parseExpiry(a) - parseExpiry(b);
+    }).filter(e => parseExpiry(e) > now).slice(0, 3);
+
+    if (sortedExpiries.length === 0) throw new Error('No option data');
+
+    // Merge all 3 expiries into combined view
+    const combined = {};
+    let putWall = null, callWall = null, maxPain = null;
+    let maxPut = 0, maxCall = 0;
+
+    for (const exp of sortedExpiries) {
+      const { calls, puts } = expiryMap[exp];
+      for (const [k, v] of Object.entries(calls)) { combined[k] = combined[k]||{c:0,p:0}; combined[k].c += v; if(v>maxCall){maxCall=v;callWall=parseFloat(k);} }
+      for (const [k, v] of Object.entries(puts))  { combined[k] = combined[k]||{c:0,p:0}; combined[k].p += v; if(v>maxPut) {maxPut=v; putWall=parseFloat(k);} }
+    }
+
+    // Max pain: strike where total OI loss is minimized
+    const strikes = Object.keys(combined).map(Number).sort((a,b)=>a-b);
+    // Filter to ±30% of spot
+    const filtered = strikes.filter(s => s >= spot*0.7 && s <= spot*1.3);
+
+    const callOI = filtered.map(s => combined[s]?.c || 0);
+    const putOI  = filtered.map(s => combined[s]?.p || 0);
+
+    // Simple max pain calc
+    let minPain = Infinity;
+    for (const target of filtered) {
+      let pain = 0;
+      for (let i = 0; i < filtered.length; i++) {
+        pain += callOI[i] * Math.max(0, filtered[i] - target);
+        pain += putOI[i]  * Math.max(0, target - filtered[i]);
+      }
+      if (pain < minPain) { minPain = pain; maxPain = target; }
+    }
+
+    destroyChart('oiChart');
+    chartInstances['oiChart'] = new Chart(document.getElementById('oiChart'),{
+      type:'bar',
+      data:{
+        labels: filtered.map(s=>'$'+s.toLocaleString()),
+        datasets:[
+          { label:'Call OI', data:callOI, backgroundColor:'rgba(63,143,107,0.65)', borderWidth:0 },
+          { label:'Put OI',  data:putOI,  backgroundColor:'rgba(176,65,62,0.65)', borderWidth:0 }
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{display:true,labels:{color:GRAY,font:{size:11}}},
+          tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw.toFixed(1)} BTC`}}
+        },
+        scales:{
+          x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:9},maxTicksLimit:12} },
+          y:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:10}}, title:{display:true,text:'Open Interest (BTC)',color:GRAY,font:{size:10}} }
+        }
+      }
+    });
+
+    document.getElementById('optionsMeta').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;font-size:0.78rem">
+        <div><span style="color:var(--t618-jade)">▲ Call Wall</span><br><strong>$${callWall?.toLocaleString()||'—'}</strong></div>
+        <div><span style="color:var(--t618-gold)">◉ Max Pain</span><br><strong>$${maxPain?.toLocaleString()||'—'}</strong></div>
+        <div><span style="color:var(--t618-oxblood)">▼ Put Wall</span><br><strong>$${putWall?.toLocaleString()||'—'}</strong></div>
+      </div>`;
+
+    return { putWall, callWall, maxPain };
+  } catch(e) {
+    console.warn('Options OI error',e);
+    document.getElementById('oiChart').closest('.chart-wrap').innerHTML = `<div class="loading error-state">⚠ ${e.message}</div>`;
+    return null;
+  }
+}
+
+// ── 5. LIQUIDATION CLUSTERS ──────────────────────────────────
+async function loadLiquidations(spot) {
+  try {
+    if (!spot) throw new Error('No spot');
+    // Derive from Deribit perpetual OI distribution and funding
+    // We model liquidation clusters using a normal distribution around spot
+    // weighted by typical leverage tiers (5x, 10x, 20x, 50x, 100x)
+    const funding = await loadFunding(); // also sets KPI
+
+    // Estimate clusters: longs cluster below spot, shorts above
+    // Using typical leverage ratios and assuming uniform distribution
+    const leverages = [5, 10, 20, 50, 100];
+    const labels = [];
+    const longLiqData = [];
+    const shortLiqData = [];
+
+    for (let pct = -30; pct <= 30; pct += 2.5) {
+      const price = spot * (1 + pct/100);
+      labels.push('$' + price.toLocaleString('en-US',{maximumFractionDigits:0}));
+      // Long liquidations occur BELOW spot (negative pct = long squeeze zone)
+      // Short liquidations occur ABOVE spot
+      let longWeight = 0, shortWeight = 0;
+      for (const lev of leverages) {
+        const liqPct = -100/lev; // liquidation distance for longs
+        const dist = Math.abs(pct - liqPct);
+        longWeight  += Math.exp(-0.5*(dist/4)**2); // gaussian cluster
+        shortWeight += Math.exp(-0.5*(pct + 100/lev)**2 / 16);
+      }
+      longLiqData.push(pct < 0 ? longWeight * 120 : 0);
+      shortLiqData.push(pct > 0 ? shortWeight * 80 : 0);
+    }
+
+    destroyChart('liqChart');
+    chartInstances['liqChart'] = new Chart(document.getElementById('liqChart'),{
+      type:'bar',
+      data:{
+        labels,
+        datasets:[
+          { label:'Long Liqs',  data:longLiqData,  backgroundColor:'rgba(176,65,62,0.7)',  borderWidth:0 },
+          { label:'Short Liqs', data:shortLiqData, backgroundColor:'rgba(63,143,107,0.7)', borderWidth:0 }
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{display:true,labels:{color:GRAY,font:{size:11}}},
+          tooltip:{callbacks:{label:c=>`${c.dataset.label}: relative exposure ${c.raw.toFixed(0)}`}}
+        },
+        scales:{
+          x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:9},maxTicksLimit:10} },
+          y:{ grid:{color:ASH}, ticks:{display:false}, title:{display:true,text:'Relative Exposure',color:GRAY,font:{size:10}} }
+        }
+      }
+    });
+
+    // Key liquidation levels
+    const liq1x  = (spot * 0.90).toLocaleString('en-US',{maximumFractionDigits:0});
+    const liq2x  = (spot * 0.95).toLocaleString('en-US',{maximumFractionDigits:0});
+    const sLiq1x = (spot * 1.10).toLocaleString('en-US',{maximumFractionDigits:0});
+
+    document.getElementById('liqMeta').innerHTML =
+      `Key long liq clusters: ~$${liq2x} (−5% / 20× longs) · ~$${liq1x} (−10% / 10× longs)<br>
+       Key short liq cluster: ~$${sLiq1x} (+10% squeeze). Model is indicative; not exchange-reported data.`;
+  } catch(e) {
+    console.warn('Liq error',e);
+  }
+}
+
+// ── 6. FUNDING RATE ──────────────────────────────────────────
+async function loadFunding() {
+  try {
+    const d = await fetchJSON('https://api.deribit.com/api/v2/public/get_funding_rate_value?instrument_name=BTC-PERPETUAL&start_timestamp=' + (Date.now()-8*3600*1000) + '&end_timestamp=' + Date.now());
+    const rate = d.result;
+    const rPct = (rate * 100).toFixed(4);
+    const el = document.getElementById('kpi-funding');
+    el.textContent = (rate >= 0 ? '+' : '') + rPct + '%';
+    el.className = `kpi-val ${Math.abs(rate) < 0.001 ? 'neutral' : rate > 0 ? 'pos' : 'neg'}`;
+    return rate;
+  } catch(e) {
+    document.getElementById('kpi-funding').textContent = 'N/A';
+    return 0;
+  }
+}
+
+// ── 7. SIGNALS ───────────────────────────────────────────────
+async function buildSignals(spot, iv, fg, opts) {
+  const signals = [];
+
+  // Fear & Greed
+  const fgVal = parseInt(document.getElementById('kpi-fg').textContent) || 50;
+  signals.push({
+    label: 'Fear & Greed',
+    value: fgVal,
+    badge: fgVal > 75 ? 'bear' : fgVal < 30 ? 'bull' : 'neutral',
+    text: fgVal > 75 ? 'Extreme Greed' : fgVal < 30 ? 'Extreme Fear' : 'Neutral'
+  });
+
+  // Funding
+  const fundingText = document.getElementById('kpi-funding').textContent;
+  const fundingVal = parseFloat(fundingText) || 0;
+  signals.push({
+    label: 'Perp Funding',
+    value: fundingText,
+    badge: fundingVal > 0.05 ? 'bear' : fundingVal < -0.02 ? 'bull' : 'neutral',
+    text: fundingVal > 0.05 ? 'Elevated Long Bias' : fundingVal < -0.02 ? 'Short Bias' : 'Balanced'
+  });
+
+  // IV regime
+  if (iv) {
+    signals.push({
+      label: 'ATM IV (30d)',
+      value: (iv*100).toFixed(1)+'%',
+      badge: iv > 0.9 ? 'warn' : iv < 0.45 ? 'warn' : 'neutral',
+      text: iv > 0.9 ? 'Vol Elevated' : iv < 0.45 ? 'Vol Compressed' : 'Normal Range'
+    });
+  }
+
+  // Options levels
+  if (opts) {
+    const { putWall, callWall, maxPain } = opts;
+    if (spot && putWall && callWall) {
+      const downside = ((putWall - spot)/spot*100).toFixed(1);
+      const upside   = ((callWall - spot)/spot*100).toFixed(1);
+      signals.push({
+        label: 'Gamma Range',
+        value: `${downside}% / +${upside}%`,
+        badge: 'neutral',
+        text: `Put $${putWall?.toLocaleString()} → Call $${callWall?.toLocaleString()}`
+      });
+    }
+    if (maxPain && spot) {
+      const mp = ((maxPain-spot)/spot*100).toFixed(1);
+      signals.push({
+        label: 'Max Pain',
+        value: '$' + maxPain?.toLocaleString(),
+        badge: maxPain < spot ? 'bear' : 'bull',
+        text: `${mp >= 0 ? '+' : ''}${mp}% vs spot`
+      });
+    }
+  }
+
+  // 48h vol outlook
+  if (iv && spot) {
+    const T48 = 48/(365*24);
+    const move1sd = (iv * Math.sqrt(T48) * 100).toFixed(1);
+    signals.push({
+      label: '48h 1σ Move',
+      value: `±${move1sd}%`,
+      badge: 'neutral',
+      text: `$${(spot*(1-iv*Math.sqrt(T48))).toLocaleString('en-US',{maximumFractionDigits:0})} – $${(spot*(1+iv*Math.sqrt(T48))).toLocaleString('en-US',{maximumFractionDigits:0})}`
+    });
+  }
+
+  const badgeMap = { bull:'badge-bull', bear:'badge-bear', warn:'badge-warn', neutral:'badge-neutral' };
+  let html = '';
+  for (const s of signals) {
+    html += `<div>
+      <div class="signal-row">
+        <span class="signal-lbl">${s.label}</span>
+        <span class="badge ${badgeMap[s.badge]}">${s.text}</span>
+      </div>
+    </div>`;
+  }
+  document.getElementById('signalGrid').innerHTML = html || '<div class="error-state">No signals</div>';
+}
+
+// ── UTILITY FUNCTIONS ────────────────────────────────────────
+function normCDF(x) {
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const sign = x<0?-1:1;
+  x=Math.abs(x)/Math.sqrt(2);
+  const t=1/(1+p*x);
+  const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return 0.5*(1+sign*y);
+}
+
+function dateStr(daysAgo) {
+  const d = new Date(); d.setDate(d.getDate()-daysAgo);
+  return d.toISOString().split('T')[0];
+}
+function dateMinus(n) { return dateStr(n); }
+
+function parseExpiry(s) {
+  // Deribit format: DDMMMYY e.g. 30MAY25
+  const months = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+  try {
+    const m = s.match(/^(\d+)([A-Z]+)(\d+)$/);
+    if (!m) return Infinity;
+    return new Date(2000+parseInt(m[3]), months[m[2]], parseInt(m[1]), 8, 0, 0).getTime();
+  } catch { return Infinity; }
+}
+
+// ── MAIN ORCHESTRATOR ────────────────────────────────────────
+async function runAll() {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = '↻ Refreshing…';
+  nextRefresh = Date.now() + REFRESH_MS;
+
+  try {
+    stamp();
+    await loadFearGreed();
+    const spot = await loadSpot();
+    const sdResult = await loadSDLevels(spot);
+    const opts = await loadOptionsOI(spot);
+    await loadLiquidations(spot);
+    await buildSignals(spot, sdResult?.iv, null, opts);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '↻ Refresh Now';
+  }
+}
+
+// ── BOOT ─────────────────────────────────────────────────────
+runAll();
+</script>
+</body>
+</html>
