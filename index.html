@@ -606,13 +606,15 @@ function renderWallsChart(key, v, liveSpot) {
   if (!v || !v.strikes.length) { wrap.innerHTML = `<div class="loading error-state">⚠ No ${key} data in snapshot</div>`; return; }
   const dec = v.strike_unit === 'USD/share' ? 1 : 0;
   const fmtK = k => usd(k, dec);
+  const pct = k => k ? `${((k/v.spot-1)*100).toFixed(1)}%` : '';
   const unit = v.unit;
   destroyChart(id);
   const lines = [{v:v.spot, c:CHAMP, label:'Spot', w:1.4}];
   // for the BTC-denominated views, also mark the live spot when it has drifted from the snapshot
   if (liveSpot && v.strike_unit !== 'USD/share' && Math.abs(liveSpot/v.spot-1) > 0.002) lines.push({v:liveSpot, c:IVORY, label:'Live', dash:[2,3], ly:22});
-  if (v.call_wall) lines.push({v:v.call_wall, c:JADE, label:'CW', dash:[5,3]});
-  if (v.put_wall)  lines.push({v:v.put_wall,  c:OX,   label:'PW', dash:[5,3]});
+  const refPx = (liveSpot && v.strike_unit !== 'USD/share') ? liveSpot : v.spot;
+  if (v.call_wall) lines.push({v:v.call_wall, c:JADE, label: v.call_wall < refPx ? 'CW (ITM)' : 'CW', dash:[5,3]});
+  if (v.put_wall)  lines.push({v:v.put_wall,  c:OX,   label: v.put_wall > refPx ? 'PW (ITM)' : 'PW', dash:[5,3]});
   if (v.max_pain)  lines.push({v:v.max_pain,  c:VIOLET, label:'Max Pain', dash:[6,2], ly:22, w:1.5});
   chartInstances[id] = new Chart(canvas, {
     type:'bar',
@@ -626,18 +628,28 @@ function renderWallsChart(key, v, liveSpot) {
       scales:{ x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:9},maxTicksLimit:14} },
                y:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:10}}, title:{display:true,text:`Open Interest (${unit})`,color:GRAY,font:{size:10}} } } }
   });
-  const pct = k => k ? `${((k/v.spot-1)*100).toFixed(1)}%` : '';
   const sub = document.getElementById('sub-'+key);
   sub.textContent = `${v.label} · ${v.n_expiries||v.expiries.length} expiries (${v.expiries[0]} → ${v.expiries[v.expiries.length-1]}) · strikes ±30% of spot ${fmtK(v.spot)}` + (v.note ? ` · ${v.note}` : '') + (v.stale ? ' · ⚠ STALE — last successful pull carried forward' : '');
-  const rowsT = (v.top_expiries||[]).map(t => `<tr class="${t.dominant?'current-row':''}"><td>${t.expiry}${t.dominant?' <span class="gold-txt">· dominant</span>':''}</td><td class="num">${(t.oi_share*100).toFixed(1)}%</td><td class="num neg">${t.put_wall?fmtK(t.put_wall):'—'}</td><td class="num" style="color:${VIOLET}">${t.max_pain?fmtK(t.max_pain):'—'}</td><td class="num pos">${t.call_wall?fmtK(t.call_wall):'—'}</td></tr>`).join('');
+  // Breached-wall rule: a call wall BELOW the reference price is ITM call OI (not resistance); a put wall ABOVE
+  // it is ITM put OI (not support). Reference = live spot for BTC-denominated views, snapshot spot for IBIT $.
+  const ref = (liveSpot && v.strike_unit !== 'USD/share') ? liveSpot : v.spot;
+  const cwITM = v.call_wall && v.call_wall < ref, pwITM = v.put_wall && v.put_wall > ref;
+  const shelf = (above) => { let best=null, oi=0; v.strikes.forEach((k,i) => { const x = above ? v.call_oi[i] : v.put_oi[i]; if ((above ? k > ref : k < ref) && x > oi) { oi = x; best = k; } }); return best; };
+  const cShelf = cwITM ? shelf(true) : null, pShelf = pwITM ? shelf(false) : null;
+  const warn = t => `<div style="color:var(--t618-gold);font-size:0.72rem;margin-top:2px">⚠ ${t}</div>`;
+  const cwNote = cwITM ? warn(`below spot — ITM call OI, not resistance${cShelf?`; nearest call shelf above: <strong>${fmtK(cShelf)}</strong> (${pct(cShelf)})`:''}`) : '';
+  const pwNote = pwITM ? warn(`above spot — ITM put OI, not support${pShelf?`; nearest put shelf below: <strong>${fmtK(pShelf)}</strong> (${pct(pShelf)})`:''}`) : '';
+  const flag = (k, itm) => itm ? `${fmtK(k)} <span title="breached — in the money" style="color:var(--t618-gold)">⚠</span>` : fmtK(k);
+  const rowsT = (v.top_expiries||[]).map(t => `<tr class="${t.dominant?'current-row':''}"><td>${t.expiry}${t.dominant?' <span class="gold-txt">· dominant</span>':''}</td><td class="num">${(t.oi_share*100).toFixed(1)}%</td><td class="num neg">${t.put_wall?flag(t.put_wall, t.put_wall > ref):'—'}</td><td class="num" style="color:${VIOLET}">${t.max_pain?fmtK(t.max_pain):'—'}</td><td class="num pos">${t.call_wall?flag(t.call_wall, t.call_wall < ref):'—'}</td></tr>`).join('');
+  const anyFlag = (v.top_expiries||[]).some(t => (t.put_wall > ref) || (t.call_wall && t.call_wall < ref));
   document.getElementById('meta-'+key).innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;font-size:0.78rem">
-      <div><span style="color:var(--t618-oxblood)">▼ Put Wall</span><br><strong>${v.put_wall?fmtK(v.put_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.put_wall)}</span></div>
+      <div><span style="color:var(--t618-oxblood)">▼ Put Wall</span><br><strong>${v.put_wall?fmtK(v.put_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.put_wall)}</span>${pwNote}</div>
       <div><span style="color:${VIOLET}">◉ Max Pain</span><br><strong>${v.max_pain?fmtK(v.max_pain):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.max_pain)}</span></div>
-      <div><span style="color:var(--t618-jade)">▲ Call Wall</span><br><strong>${v.call_wall?fmtK(v.call_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.call_wall)}</span></div>
+      <div><span style="color:var(--t618-jade)">▲ Call Wall</span><br><strong>${v.call_wall?fmtK(v.call_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.call_wall)}</span>${cwNote}</div>
       <div><span style="color:var(--t618-warmgray)">Σ OI · ${v.n_expiries||v.expiries.length} expiries</span><br><strong>${v.total_oi.toLocaleString('en-US',{maximumFractionDigits:0})} ${unit}</strong></div>
     </div>
-    <table class="t618-table" style="margin-top:0.9rem"><thead><tr><th>Largest expiries by OI</th><th class="num">OI share</th><th class="num">Put wall</th><th class="num">Max pain</th><th class="num">Call wall</th></tr></thead><tbody>${rowsT}</tbody></table>`;
+    <table class="t618-table" style="margin-top:0.9rem"><thead><tr><th>Largest expiries by OI</th><th class="num">OI share</th><th class="num">Put wall</th><th class="num">Max pain</th><th class="num">Call wall</th></tr></thead><tbody>${rowsT}</tbody></table>${anyFlag?`<div style="font-size:0.7rem;color:var(--t618-warmgray);margin-top:4px">⚠ = wall is on the wrong side of spot (in the money) — it marks where OI sits, not support/resistance.</div>`:''}`;
 }
 
 async function loadWalls(liveSpot) {
@@ -684,7 +696,8 @@ function buildSignals({spot, iv, rv7, fg, funding, walls}) {
   }
   const d = walls && walls.venues && walls.venues.deribit;
   if (d && spot && d.put_wall && d.call_wall) {
-    s.push({label:'Gamma Range (Deribit)', badge:'neutral', text:`Put ${usd(d.put_wall)} → Call ${usd(d.call_wall)} (${((d.put_wall-spot)/spot*100).toFixed(1)}% / ${((d.call_wall-spot)/spot*100).toFixed(1)}%)`});
+    const breached = d.call_wall < spot || d.put_wall > spot;
+    s.push({label:'Gamma Range (Deribit)', badge: breached ? 'warn' : 'neutral', text:`Put ${usd(d.put_wall)} → Call ${usd(d.call_wall)} (${((d.put_wall-spot)/spot*100).toFixed(1)}% / ${((d.call_wall-spot)/spot*100).toFixed(1)}%)${breached ? ' · call wall breached (ITM)' : ''}`});
   }
   if (d && d.max_pain && spot) {
     const mp = (d.max_pain-spot)/spot*100;
