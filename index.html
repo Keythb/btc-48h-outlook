@@ -345,16 +345,6 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
     </div>
   </div>
 
-  <!-- ROW 2: Price + F&G -->
-  <div class="panel-grid">
-    <div class="panel">
-      <div class="eyebrow">Sentiment</div>
-      <h3>Fear &amp; Greed — 30-Day History</h3>
-      <div class="panel-sub">alternative.me · 0 = Extreme Fear · 100 = Extreme Greed</div>
-      <div class="chart-wrap"><canvas id="fgChart"></canvas></div>
-    </div>
-  </div>
-
   <!-- ROW 3: Option walls (daily snapshot) -->
   <div class="eyebrow">Options Market Structure · <span id="wallsAsOf">loading snapshot…</span></div>
   <div class="panel-grid">
@@ -387,6 +377,16 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
       <div class="signal-grid" id="signalGrid">
         <div class="loading" style="grid-column:1/-1"><div class="spinner"></div>Computing…</div>
       </div>
+    </div>
+  </div>
+
+  <!-- ROW 5: Sentiment (full width) -->
+  <div class="panel-grid">
+    <div class="panel panel-full">
+      <div class="eyebrow">Sentiment</div>
+      <h3>Fear &amp; Greed — 30-Day History</h3>
+      <div class="panel-sub">alternative.me · 0 = Extreme Fear · 100 = Extreme Greed</div>
+      <div class="chart-wrap"><canvas id="fgChart"></canvas></div>
     </div>
   </div>
 
