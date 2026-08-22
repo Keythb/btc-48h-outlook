@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TON618 Capital · BTC 48h Risk Outlook</title>
+<title>TON618 Capital · BTC 48h Outlook</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -127,7 +127,7 @@ header {
 /* ── KPI ROW ── */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 1px;
   background: var(--t618-ash);
   border: 1px solid var(--t618-ash);
@@ -310,7 +310,7 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
   <div class="refresh-bar">
     <div class="refresh-indicator">
       <div class="pulse"></div>
-      Live · Auto-refresh every 5 min
+      Live · Levels auto-refresh every 5 min · Option walls refresh daily
     </div>
     <div class="countdown-wrap">Next refresh in <span id="countdown">5:00</span></div>
     <button class="refresh-btn" id="refreshBtn" onclick="runAll()">↻ Refresh Now</button>
@@ -321,62 +321,70 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
   <div class="kpi-grid" id="kpiGrid">
     <div class="kpi-cell"><div class="kpi-val" id="kpi-spot">—</div><div class="kpi-lbl">BTC Spot (USD)</div></div>
     <div class="kpi-cell"><div class="kpi-val" id="kpi-chg">—</div><div class="kpi-lbl">24h Change</div></div>
-    <div class="kpi-cell"><div class="kpi-val" id="kpi-fg">—</div><div class="kpi-lbl">Fear & Greed</div></div>
+    <div class="kpi-cell"><div class="kpi-val" id="kpi-fg">—</div><div class="kpi-lbl">Fear &amp; Greed</div></div>
     <div class="kpi-cell"><div class="kpi-val" id="kpi-funding">—</div><div class="kpi-lbl">Perp Funding /8h</div></div>
     <div class="kpi-cell"><div class="kpi-val" id="kpi-iv">—</div><div class="kpi-lbl">ATM IV (30d)</div></div>
+    <div class="kpi-cell"><div class="kpi-val" id="kpi-rv">—</div><div class="kpi-lbl">Realized Vol (30d)</div></div>
   </div>
 
-  <!-- PANEL ROW 1: SD Levels + Price Chart -->
+  <!-- ROW 1: SD levels — implied vs realized -->
   <div class="panel-grid">
-
     <div class="panel">
-      <div class="eyebrow">Volatility Regime</div>
-      <h3>48h Standard-Deviation Price Levels</h3>
-      <div class="panel-sub">Based on ATM implied volatility · Updated on refresh</div>
-      <div id="sdTable"><div class="loading"><div class="spinner"></div>Fetching IV & spot…</div></div>
+      <div class="eyebrow">Volatility Regime · Implied</div>
+      <h3>48h Standard-Deviation Price Levels — Implied Vol</h3>
+      <div class="panel-sub">Based on 30d ATM implied volatility (Deribit) · Updated every 5 min</div>
+      <div id="sdTableIV"><div class="loading"><div class="spinner"></div>Fetching IV &amp; spot…</div></div>
     </div>
+    <div class="panel">
+      <div class="eyebrow">Volatility Regime · Realized</div>
+      <h3>48h Standard-Deviation Price Levels — Realized Vol</h3>
+      <div class="panel-sub">Based on 30d close-to-close realized volatility (Coinbase BTC-USD daily closes) · Updated every 5 min</div>
+      <div id="sdTableRV"><div class="loading"><div class="spinner"></div>Fetching price history…</div></div>
+    </div>
+  </div>
 
+  <!-- ROW 2: Price + F&G -->
+  <div class="panel-grid">
     <div class="panel">
       <div class="eyebrow">Price Action</div>
       <h3>7-Day Spot Price</h3>
-      <div class="panel-sub">Hourly close · Coindesk public API</div>
+      <div class="panel-sub">Hourly close · Coinbase BTC-USD</div>
       <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
     </div>
-
-  </div>
-
-  <!-- PANEL ROW 2: Options + Liquidations -->
-  <div class="panel-grid">
-
-    <div class="panel">
-      <div class="eyebrow">Options Market Structure</div>
-      <h3>Open Interest by Strike</h3>
-      <div class="panel-sub">Deribit · Nearest 3 expiries · Put wall / Call wall</div>
-      <div class="chart-wrap tall"><canvas id="oiChart"></canvas></div>
-      <div id="optionsMeta" style="margin-top:1rem"></div>
-    </div>
-
-    <div class="panel">
-      <div class="eyebrow">Leveraged Positioning</div>
-      <h3>Liquidation Cluster Estimate</h3>
-      <div class="panel-sub">Derived from OI distribution &amp; funding cascade model</div>
-      <div class="chart-wrap tall"><canvas id="liqChart"></canvas></div>
-      <div id="liqMeta" style="margin-top:0.75rem; font-size:0.78rem; color:var(--t618-warmgray)"></div>
-    </div>
-
-  </div>
-
-  <!-- PANEL ROW 3: F&G History + Signals -->
-  <div class="panel-grid">
-
     <div class="panel">
       <div class="eyebrow">Sentiment</div>
-      <h3>Fear & Greed — 30-Day History</h3>
+      <h3>Fear &amp; Greed — 30-Day History</h3>
       <div class="panel-sub">alternative.me · 0 = Extreme Fear · 100 = Extreme Greed</div>
       <div class="chart-wrap"><canvas id="fgChart"></canvas></div>
     </div>
+  </div>
 
-    <div class="panel">
+  <!-- ROW 3: Option walls (daily snapshot) -->
+  <div class="eyebrow">Options Market Structure · <span id="wallsAsOf">loading snapshot…</span></div>
+  <div class="panel-grid">
+    <div class="panel panel-full">
+      <h3>Open Interest by Strike — Deribit BTC Options</h3>
+      <div class="panel-sub" id="sub-deribit">Deribit · All expiries inside the next 7 days · Put wall / Call wall / Max pain</div>
+      <div class="chart-wrap tall"><canvas id="oi-deribit"></canvas></div>
+      <div id="meta-deribit" style="margin-top:1rem"></div>
+    </div>
+    <div class="panel panel-full">
+      <h3>Open Interest by Strike — IBIT Options</h3>
+      <div class="panel-sub" id="sub-ibit">Schwab · All expiries inside the next 7 days · Strikes in USD per share · OI in contracts</div>
+      <div class="chart-wrap tall"><canvas id="oi-ibit"></canvas></div>
+      <div id="meta-ibit" style="margin-top:1rem"></div>
+    </div>
+    <div class="panel panel-full">
+      <h3>Open Interest by Strike — IBIT Options in BTC Terms</h3>
+      <div class="panel-sub" id="sub-ibit_btc">IBIT strikes converted to BTC prices via the live BTC/IBIT ratio · OI in BTC-equivalent</div>
+      <div class="chart-wrap tall"><canvas id="oi-ibit_btc"></canvas></div>
+      <div id="meta-ibit_btc" style="margin-top:1rem"></div>
+    </div>
+  </div>
+
+  <!-- ROW 4: Signals -->
+  <div class="panel-grid">
+    <div class="panel panel-full">
       <div class="eyebrow">Signal Summary</div>
       <h3>48h Positioning Signals</h3>
       <div class="panel-sub">Composite read · Updated on each refresh</div>
@@ -384,12 +392,11 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
         <div class="loading" style="grid-column:1/-1"><div class="spinner"></div>Computing…</div>
       </div>
     </div>
-
   </div>
 
   <!-- DISCLOSURE -->
   <p class="disclosure">
-    TON618 Capital. This page is for internal research and information purposes only. It does not constitute investment advice, a solicitation, or an offer to buy or sell any security or digital asset. All data is sourced from public third-party APIs (CoinDesk, Deribit, alternative.me) and may be delayed or incomplete. Past performance is not indicative of future results. Cryptocurrency markets involve substantial risk of loss. © 2026 TON618 Capital. All rights reserved.
+    TON618 Capital. This page is for internal research and information purposes only. It does not constitute investment advice, a solicitation, or an offer to buy or sell any security or digital asset. Spot, funding, implied and realized volatility are sourced live in the browser from public Deribit, Coinbase Exchange, and alternative.me endpoints; option open interest is a once-daily snapshot from Deribit (BTC options) and Schwab market data (IBIT options). Implied volatility is Deribit's mark IV for the at-the-money option nearest 30 days to expiry; realized volatility is the annualized standard deviation of the last 30 daily log returns of Coinbase BTC-USD closes. σ levels use a log-normal model and are estimates, not forecasts. Put/call walls, max pain, and the IBIT-to-BTC conversion (strike × BTC/IBIT price ratio at snapshot time) are model-based and subject to data error. Data may be delayed or incomplete. Past performance is not indicative of future results. Cryptocurrency markets involve substantial risk of loss. © 2026 TON618 Capital. All rights reserved.
   </p>
 
 </div>
@@ -398,15 +405,17 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
 <script>
 // ── THEME CONSTANTS ──────────────────────────────────────────
 const GOLD='#C9A24B', CHAMP='#E6D2A2', ASH='#3A3A40', GRAY='#9A958A',
-      JADE='#3F8F6B', OX='#B0413E', ONYX='#16161A', OBS='#0B0B0C', IVORY='#F6F3EC';
-
+      JADE='#3F8F6B', OX='#B0413E', ONYX='#16161A', OBS='#0B0B0C', IVORY='#F6F3EC', VIOLET='#9A7BD1';
 Chart.defaults.color = GRAY;
 Chart.defaults.font.family = 'Inter, Helvetica Neue, Arial, sans-serif';
 
+const DERIBIT = 'https://www.deribit.com/api/v2/public';
+const WALLS_URL = 'data/walls.json';          // written daily by update_walls.py (launchd, zero-token)
 const chartInstances = {};
 function destroyChart(id) { if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; } }
+const usd = (v, d=0) => '$' + v.toLocaleString('en-US', {maximumFractionDigits:d, minimumFractionDigits:d});
 
-// ── COUNTDOWN TIMER ──────────────────────────────────────────
+// ── COUNTDOWN TIMER (5-min levels refresh) ───────────────────
 const REFRESH_MS = 5 * 60 * 1000;
 let nextRefresh = Date.now() + REFRESH_MS;
 setInterval(() => {
@@ -416,15 +425,12 @@ setInterval(() => {
   if (rem === 0) { nextRefresh = Date.now() + REFRESH_MS; runAll(); }
 }, 1000);
 
-// ── TIMESTAMP ────────────────────────────────────────────────
 function stamp() {
   document.getElementById('lastUpdated').textContent =
     'Risk Desk · ' + new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
 }
-
-// ── FETCH HELPERS ────────────────────────────────────────────
 async function fetchJSON(url) {
-  const r = await fetch(url, {headers:{'Accept':'application/json'}});
+  const r = await fetch(url, {headers:{'Accept':'application/json'}, cache:'no-store'});
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }
@@ -433,470 +439,285 @@ async function fetchJSON(url) {
 async function loadFearGreed() {
   try {
     const d = await fetchJSON('https://api.alternative.me/fng/?limit=30&format=json');
-    const pts = d.data.reverse();
-    const latest = d.data[d.data.length-1];
-    const val = parseInt(latest.value);
-    const cls = val < 30 ? 'neg' : val > 70 ? 'pos' : 'neutral';
-    document.getElementById('kpi-fg').textContent = `${val}`;
-    document.getElementById('kpi-fg').className = `kpi-val ${cls}`;
-
-    // chart
+    const pts = d.data.slice().reverse();
+    const val = parseInt(pts[pts.length-1].value);
+    const el = document.getElementById('kpi-fg');
+    el.textContent = `${val}`;
+    el.className = `kpi-val ${val < 30 ? 'neg' : val > 70 ? 'pos' : 'neutral'}`;
     destroyChart('fgChart');
     const labels = pts.map(p => { const d2=new Date(p.timestamp*1000); return `${d2.getMonth()+1}/${d2.getDate()}`; });
-    const vals   = pts.map(p => parseInt(p.value));
-    const colors = vals.map(v => v < 30 ? OX : v > 70 ? JADE : GOLD);
+    const vals = pts.map(p => parseInt(p.value));
     chartInstances['fgChart'] = new Chart(document.getElementById('fgChart'),{
       type:'bar',
-      data:{ labels, datasets:[{ data:vals, backgroundColor:colors, borderWidth:0 }] },
-      options:{
-        responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} – ${pts[c.dataIndex].value_classification}`}}},
-        scales:{
-          x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:10},maxTicksLimit:10} },
-          y:{ min:0, max:100, grid:{color:ASH}, ticks:{color:GRAY,font:{size:10}} }
-        }
-      }
+      data:{ labels, datasets:[{ data:vals, backgroundColor:vals.map(v => v < 30 ? OX : v > 70 ? JADE : GOLD), borderWidth:0 }] },
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} – ${pts[c.dataIndex].value_classification}`}}},
+        scales:{ x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:10},maxTicksLimit:10} },
+                 y:{ min:0, max:100, grid:{color:ASH}, ticks:{color:GRAY,font:{size:10}} } } }
     });
-  } catch(e) { console.warn('F&G error',e); }
+    return val;
+  } catch(e) { console.warn('F&G error',e); return null; }
 }
 
-// ── 2. BTC SPOT + PRICE CHART ────────────────────────────────
-async function loadSpot() {
+// ── 2. SPOT, 7-DAY CHART, REALIZED VOL (Deribit index) ───────
+async function loadMarket() {
+  const ix = await fetchJSON(`${DERIBIT}/get_index_price?index_name=btc_usd`);
+  const spot = ix.result.index_price;
+  document.getElementById('kpi-spot').textContent = usd(spot);
+  const now = Date.now();
+  const out = { spot, rv30:null, rv7:null };
+
+  // Coinbase Exchange candles (CORS-open): [time, low, high, open, close, volume], newest first
+  const COINBASE = 'https://api.exchange.coinbase.com/products/BTC-USD/candles';
+
+  // hourly closes, 7 days → chart + 24h change
   try {
-    // Use CoinDesk public REST (no key needed for basic data)
-    const d = await fetchJSON('https://api.coindesk.com/v1/bpi/currentprice/USD.json');
-    const spot = d.bpi.USD.rate_float;
-    document.getElementById('kpi-spot').textContent = '$' + spot.toLocaleString('en-US',{maximumFractionDigits:0});
-
-    // 7-day OHLCV from CoinDesk v2 index
-    try {
-      const hist = await fetchJSON('https://api.coindesk.com/v1/bpi/historical/close.json?currency=USD&start=' + dateMinus(7) + '&end=' + dateStr(0));
-      const entries = Object.entries(hist.bpi).sort((a,b)=>a[0]<b[0]?-1:1);
-      const labels = entries.map(e=>e[0].slice(5));
-      const closes = entries.map(e=>e[1]);
-
-      // 24h change using last two available closes
-      if (closes.length >= 2) {
-        const chg = ((closes[closes.length-1] - closes[closes.length-2]) / closes[closes.length-2]) * 100;
-        document.getElementById('kpi-chg').textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
-        document.getElementById('kpi-chg').className = `kpi-val ${chg>=0?'pos':'neg'}`;
-      }
-
-      destroyChart('priceChart');
-      chartInstances['priceChart'] = new Chart(document.getElementById('priceChart'),{
-        type:'line',
-        data:{labels, datasets:[{
-          label:'BTC/USD', data:closes,
-          borderColor:GOLD, borderWidth:2,
-          backgroundColor:'rgba(201,162,75,0.06)',
-          pointRadius:3, pointBackgroundColor:GOLD,
-          fill:true, tension:0.3
-        }]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'$'+c.raw.toLocaleString()}}},
-          scales:{
-            x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:11}} },
-            y:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:11},callback:v=>'$'+v.toLocaleString()} }
-          }
-        }
-      });
-
-      return spot;
-    } catch(e2) { console.warn('hist error',e2); return spot; }
-  } catch(e) { console.warn('Spot error',e); return null; }
-}
-
-// ── 3. IMPLIED VOL & SD LEVELS ───────────────────────────────
-async function loadSDLevels(spot) {
-  try {
-    if (!spot) throw new Error('No spot');
-    // Deribit public API — get ATM IV for BTC-PERPETUAL
-    const d = await fetchJSON('https://api.deribit.com/api/v2/public/get_index_price?index_name=btc_usd');
-    const markSpot = d.result.index_price || spot;
-
-    // Get 30d ATM IV from Deribit ticker for the nearest monthly option
-    let iv30 = 0.65; // fallback ~65% IV
-    try {
-      const tickers = await fetchJSON('https://api.deribit.com/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=option');
-      const instruments = tickers.result || [];
-      // find ~30d expiry, ATM calls
-      const now = Date.now();
-      const target30 = now + 30*24*3600*1000;
-      let best = null, bestDist = Infinity;
-      for (const inst of instruments) {
-        if (!inst.instrument_name.endsWith('-C')) continue;
-        const parts = inst.instrument_name.split('-');
-        const expStr = parts[1];
-        const expDate = new Date(expStr.replace(/(\d+)([A-Z]+)(\d+)/, '$1 $2 $3'));
-        const strike = parseFloat(parts[2]);
-        const atmDist = Math.abs(strike - markSpot);
-        if (atmDist < markSpot * 0.05) { // within 5% of spot
-          const timeDist = Math.abs(expDate.getTime() - target30);
-          if (timeDist < bestDist) { bestDist = timeDist; best = inst; }
-        }
-      }
-      if (best && best.mark_iv) iv30 = best.mark_iv / 100;
-    } catch(e2) { console.warn('Deribit IV fallback',e2); }
-
-    document.getElementById('kpi-iv').textContent = (iv30*100).toFixed(1)+'%';
-    document.getElementById('kpi-iv').className = 'kpi-val neutral';
-
-    // Compute SD levels (log-normal)
-    const T48  = 48 / (365*24);
-    const T24  = 24 / (365*24);
-    const σ    = iv30;
-    const S    = markSpot;
-
-    function sdLevel(sigma, t, z) { return S * Math.exp(z * sigma * Math.sqrt(t)); }
-
-    const levels = [
-      { label: '+3σ (48h)', price: sdLevel(σ,T48, 3), tag:'3σ Up',  side:'up' },
-      { label: '+2σ (48h)', price: sdLevel(σ,T48, 2), tag:'2σ Up',  side:'up' },
-      { label: '+1σ (48h)', price: sdLevel(σ,T48, 1), tag:'1σ Up',  side:'up' },
-      { label: 'SPOT NOW',  price: S,                  tag:'Spot',   side:'spot' },
-      { label: '−1σ (48h)', price: sdLevel(σ,T48,-1), tag:'1σ Dn',  side:'down' },
-      { label: '−2σ (48h)', price: sdLevel(σ,T48,-2), tag:'2σ Dn',  side:'down' },
-      { label: '−3σ (48h)', price: sdLevel(σ,T48,-3), tag:'3σ Dn',  side:'down' },
-    ];
-
-    const probUp   = (v => (100*(1 - normCDF((Math.log(v/S))/(σ*Math.sqrt(T48))))).toFixed(1));
-    const probDown = (v => (100*normCDF((Math.log(v/S))/(σ*Math.sqrt(T48)))).toFixed(1));
-
-    let html = `<table class="t618-table"><thead><tr>
-      <th>Level</th><th class="num">Price (USD)</th><th class="num">vs Spot</th><th class="num">48h Prob</th>
-    </tr></thead><tbody>`;
-    for (const lv of levels) {
-      const pct = ((lv.price - S)/S*100).toFixed(2);
-      const pctStr = lv.side==='spot' ? '—' : (pct>0?'+':'')+pct+'%';
-      const prob = lv.side==='spot' ? '—' : lv.side==='up' ? probUp(lv.price)+'%' : probDown(lv.price)+'%';
-      const cls  = lv.side==='spot' ? 'current-row' : '';
-      const valCls = lv.side==='spot' ? 'gold-txt' : lv.side==='up' ? 'pos' : 'neg';
-      html += `<tr class="${cls}"><td>${lv.label}</td>
-        <td class="num ${valCls}">$${lv.price.toLocaleString('en-US',{maximumFractionDigits:0})}</td>
-        <td class="num ${valCls}">${pctStr}</td>
-        <td class="num">${prob}</td></tr>`;
+    const h = (await fetchJSON(`${COINBASE}?granularity=3600`)).filter(c => c[0]*1000 >= now - 7*86400000).reverse();
+    const ticks = h.map(c => c[0]*1000), closes = h.map(c => c[4]);
+    const i24 = ticks.findIndex(t => t >= now - 24*3600000);
+    if (i24 > 0) {
+      const chg = (spot / closes[i24] - 1) * 100;
+      const el = document.getElementById('kpi-chg');
+      el.textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+      el.className = `kpi-val ${chg>=0?'pos':'neg'}`;
     }
-    html += '</tbody></table>';
-    html += `<div style="margin-top:0.6rem;font-size:0.7rem;color:var(--t618-warmgray)">IV: ${(iv30*100).toFixed(1)}% · Log-normal model · Not a forecast.</div>`;
-    document.getElementById('sdTable').innerHTML = html;
-    return { spot: S, iv: iv30 };
-  } catch(e) {
-    document.getElementById('sdTable').innerHTML = `<div class="error-state">⚠ ${e.message}</div>`;
-    return null;
+    destroyChart('priceChart');
+    chartInstances['priceChart'] = new Chart(document.getElementById('priceChart'),{
+      type:'line',
+      data:{ labels: ticks.map(t => { const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}h`; }),
+        datasets:[{ label:'BTC/USD', data:closes, borderColor:GOLD, borderWidth:1.5, backgroundColor:'rgba(201,162,75,0.06)', pointRadius:0, fill:true, tension:0.2 }] },
+      options:{ responsive:true, maintainAspectRatio:false, interaction:{intersect:false, mode:'index'},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>usd(c.raw)}}},
+        scales:{ x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:10},maxTicksLimit:8} },
+                 y:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:11},callback:v=>usd(v)} } } }
+    });
+  } catch(e) { console.warn('hourly error', e); }
+
+  // daily closes → 30 log returns → realized vol (annualized, √365). Drops today's partial candle.
+  try {
+    const d = (await fetchJSON(`${COINBASE}?granularity=86400`)).reverse();
+    const full = d.filter(c => c[0]*1000 + 86400000 <= now);
+    const c = full.slice(-31).map(x => x[4]);
+    const rets = []; for (let i=1;i<c.length;i++) rets.push(Math.log(c[i]/c[i-1]));
+    const rv = arr => { const m = arr.reduce((a,b)=>a+b,0)/arr.length; const v = arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1); return Math.sqrt(v*365); };
+    if (rets.length >= 20) out.rv30 = rv(rets);
+    if (rets.length >= 7)  out.rv7  = rv(rets.slice(-7));
+    const el = document.getElementById('kpi-rv');
+    el.textContent = out.rv30 ? (out.rv30*100).toFixed(1)+'%' : 'N/A';
+    el.className = 'kpi-val neutral';
+  } catch(e) { console.warn('daily error', e); document.getElementById('kpi-rv').textContent = 'N/A'; }
+  return out;
+}
+
+// ── 3. IMPLIED VOL — 30d ATM mark IV from the Deribit book ───
+async function loadIV(spot) {
+  const t = await fetchJSON(`${DERIBIT}/get_book_summary_by_currency?currency=BTC&kind=option`);
+  const target = Date.now() + 30*86400000;
+  let best = null, bestD = Infinity;
+  for (const inst of (t.result || [])) {
+    if (!inst.instrument_name.endsWith('-C') || !inst.mark_iv) continue;
+    const p = inst.instrument_name.split('-');
+    const k = parseFloat(p[2]);
+    if (Math.abs(k - spot) > spot*0.05) continue;
+    const d = Math.abs(parseExpiry(p[1]) - target) + Math.abs(k - spot);   // nearest 30d, then nearest ATM
+    if (d < bestD) { bestD = d; best = inst; }
   }
+  if (!best) throw new Error('No ATM option near 30d');
+  const iv = best.mark_iv / 100;
+  const el = document.getElementById('kpi-iv');
+  el.textContent = (iv*100).toFixed(1)+'%'; el.className = 'kpi-val neutral';
+  return { iv, instrument: best.instrument_name };
 }
 
-// ── 4. OPTIONS OI BY STRIKE ──────────────────────────────────
-async function loadOptionsOI(spot) {
-  try {
-    if (!spot) throw new Error('No spot');
-    const d = await fetchJSON('https://api.deribit.com/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=option');
-    const instruments = d.result || [];
-
-    // Group by expiry, keep 3 nearest
-    const expiryMap = {};
-    for (const inst of instruments) {
-      if (inst.open_interest == null || inst.open_interest === 0) continue;
-      const parts = inst.instrument_name.split('-');
-      if (parts.length < 4) continue;
-      const expiry = parts[1];
-      const strike = parseFloat(parts[2]);
-      const type   = parts[3]; // C or P
-      if (!expiryMap[expiry]) expiryMap[expiry] = { calls:{}, puts:{} };
-      const key = type === 'C' ? 'calls' : 'puts';
-      expiryMap[expiry][key][strike] = (expiryMap[expiry][key][strike]||0) + inst.open_interest;
-    }
-
-    // Sort expiries, take 3 nearest
-    const now = Date.now();
-    const sortedExpiries = Object.keys(expiryMap).sort((a,b) => {
-      return parseExpiry(a) - parseExpiry(b);
-    }).filter(e => parseExpiry(e) > now).slice(0, 3);
-
-    if (sortedExpiries.length === 0) throw new Error('No option data');
-
-    // Merge all 3 expiries into combined view
-    const combined = {};
-    let putWall = null, callWall = null, maxPain = null;
-    let maxPut = 0, maxCall = 0;
-
-    for (const exp of sortedExpiries) {
-      const { calls, puts } = expiryMap[exp];
-      for (const [k, v] of Object.entries(calls)) { combined[k] = combined[k]||{c:0,p:0}; combined[k].c += v; if(v>maxCall){maxCall=v;callWall=parseFloat(k);} }
-      for (const [k, v] of Object.entries(puts))  { combined[k] = combined[k]||{c:0,p:0}; combined[k].p += v; if(v>maxPut) {maxPut=v; putWall=parseFloat(k);} }
-    }
-
-    // Max pain: strike where total OI loss is minimized
-    const strikes = Object.keys(combined).map(Number).sort((a,b)=>a-b);
-    // Filter to ±30% of spot
-    const filtered = strikes.filter(s => s >= spot*0.7 && s <= spot*1.3);
-
-    const callOI = filtered.map(s => combined[s]?.c || 0);
-    const putOI  = filtered.map(s => combined[s]?.p || 0);
-
-    // Simple max pain calc
-    let minPain = Infinity;
-    for (const target of filtered) {
-      let pain = 0;
-      for (let i = 0; i < filtered.length; i++) {
-        pain += callOI[i] * Math.max(0, filtered[i] - target);
-        pain += putOI[i]  * Math.max(0, target - filtered[i]);
-      }
-      if (pain < minPain) { minPain = pain; maxPain = target; }
-    }
-
-    destroyChart('oiChart');
-    chartInstances['oiChart'] = new Chart(document.getElementById('oiChart'),{
-      type:'bar',
-      data:{
-        labels: filtered.map(s=>'$'+s.toLocaleString()),
-        datasets:[
-          { label:'Call OI', data:callOI, backgroundColor:'rgba(63,143,107,0.65)', borderWidth:0 },
-          { label:'Put OI',  data:putOI,  backgroundColor:'rgba(176,65,62,0.65)', borderWidth:0 }
-        ]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{
-          legend:{display:true,labels:{color:GRAY,font:{size:11}}},
-          tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw.toFixed(1)} BTC`}}
-        },
-        scales:{
-          x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:9},maxTicksLimit:12} },
-          y:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:10}}, title:{display:true,text:'Open Interest (BTC)',color:GRAY,font:{size:10}} }
-        }
-      }
-    });
-
-    document.getElementById('optionsMeta').innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;font-size:0.78rem">
-        <div><span style="color:var(--t618-jade)">▲ Call Wall</span><br><strong>$${callWall?.toLocaleString()||'—'}</strong></div>
-        <div><span style="color:var(--t618-gold)">◉ Max Pain</span><br><strong>$${maxPain?.toLocaleString()||'—'}</strong></div>
-        <div><span style="color:var(--t618-oxblood)">▼ Put Wall</span><br><strong>$${putWall?.toLocaleString()||'—'}</strong></div>
-      </div>`;
-
-    return { putWall, callWall, maxPain };
-  } catch(e) {
-    console.warn('Options OI error',e);
-    document.getElementById('oiChart').closest('.chart-wrap').innerHTML = `<div class="loading error-state">⚠ ${e.message}</div>`;
-    return null;
+// ── 4. SD LEVEL TABLE (shared by the IV and RV panels) ───────
+function renderSD(elId, S, sigma, footnote) {
+  const T48 = 48/(365*24);
+  const lvl = z => S * Math.exp(z * sigma * Math.sqrt(T48));
+  const probUp   = v => (100*(1 - normCDF(Math.log(v/S)/(sigma*Math.sqrt(T48))))).toFixed(1);
+  const probDown = v => (100*normCDF(Math.log(v/S)/(sigma*Math.sqrt(T48)))).toFixed(1);
+  const rows = [[3,'up'],[2,'up'],[1,'up'],[0,'spot'],[-1,'down'],[-2,'down'],[-3,'down']];
+  let html = `<table class="t618-table"><thead><tr><th>Level</th><th class="num">Price (USD)</th><th class="num">vs Spot</th><th class="num">48h Prob</th></tr></thead><tbody>`;
+  for (const [z, side] of rows) {
+    const price = side==='spot' ? S : lvl(z);
+    const label = side==='spot' ? 'SPOT NOW' : `${z>0?'+':'−'}${Math.abs(z)}σ (48h)`;
+    const pct = ((price - S)/S*100).toFixed(2);
+    const pctStr = side==='spot' ? '—' : (pct>0?'+':'')+pct+'%';
+    const prob = side==='spot' ? '—' : side==='up' ? probUp(price)+'%' : probDown(price)+'%';
+    const valCls = side==='spot' ? 'gold-txt' : side==='up' ? 'pos' : 'neg';
+    html += `<tr class="${side==='spot'?'current-row':''}"><td>${label}</td><td class="num ${valCls}">${usd(price)}</td><td class="num ${valCls}">${pctStr}</td><td class="num">${prob}</td></tr>`;
   }
+  html += `</tbody></table><div style="margin-top:0.6rem;font-size:0.7rem;color:var(--t618-warmgray)">${footnote} · Log-normal model · Not a forecast.</div>`;
+  document.getElementById(elId).innerHTML = html;
+}
+function sdError(elId, msg) { document.getElementById(elId).innerHTML = `<div class="error-state">⚠ ${msg}</div>`; }
+
+// ── 5. OPTION WALLS — daily snapshot from data/walls.json ────
+const wallLines = {
+  id:'wallLines',
+  afterDatasetsDraw(chart) {
+    const cfg = chart.options.plugins.wallLines; if (!cfg || !cfg.lines) return;
+    const {ctx, chartArea:a, scales:{x}} = chart; const ks = cfg.strikes;
+    const px = price => {
+      if (!ks.length) return null;
+      if (price <= ks[0]) return x.getPixelForValue(0);
+      if (price >= ks[ks.length-1]) return x.getPixelForValue(ks.length-1);
+      for (let i=0;i<ks.length-1;i++) if (price>=ks[i] && price<=ks[i+1]) { const f=(price-ks[i])/(ks[i+1]-ks[i]); return x.getPixelForValue(i) + (x.getPixelForValue(i+1)-x.getPixelForValue(i))*f; }
+      return null;
+    };
+    cfg.lines.forEach(L => {
+      const p = px(L.v); if (p==null) return;
+      ctx.save(); ctx.beginPath(); ctx.moveTo(p, a.top); ctx.lineTo(p, a.bottom);
+      ctx.lineWidth = L.w||1.2; ctx.strokeStyle = L.c; ctx.setLineDash(L.dash||[]); ctx.stroke();
+      ctx.setLineDash([]); ctx.fillStyle = L.c; ctx.font = 'bold 10px Inter, sans-serif'; ctx.textAlign='center';
+      ctx.fillText(L.label, p, a.top + (L.ly||10)); ctx.restore();
+    });
+  }
+};
+Chart.register(wallLines);
+
+function renderWallsChart(key, v, liveSpot) {
+  const id = 'oi-'+key, canvas = document.getElementById(id);
+  const wrap = canvas ? canvas.closest('.chart-wrap') : null;
+  if (!canvas) return;
+  if (!v || !v.strikes.length) { wrap.innerHTML = `<div class="loading error-state">⚠ No ${key} data in snapshot</div>`; return; }
+  const dec = v.strike_unit === 'USD/share' ? 1 : 0;
+  const fmtK = k => usd(k, dec);
+  const unit = v.unit;
+  destroyChart(id);
+  const lines = [{v:v.spot, c:CHAMP, label:'Spot', w:1.4}];
+  // for the BTC-denominated views, also mark the live spot when it has drifted from the snapshot
+  if (liveSpot && v.strike_unit !== 'USD/share' && Math.abs(liveSpot/v.spot-1) > 0.002) lines.push({v:liveSpot, c:IVORY, label:'Live', dash:[2,3], ly:22});
+  if (v.call_wall) lines.push({v:v.call_wall, c:JADE, label:'CW', dash:[5,3]});
+  if (v.put_wall)  lines.push({v:v.put_wall,  c:OX,   label:'PW', dash:[5,3]});
+  if (v.max_pain)  lines.push({v:v.max_pain,  c:VIOLET, label:'Max Pain', dash:[6,2], ly:22, w:1.5});
+  chartInstances[id] = new Chart(canvas, {
+    type:'bar',
+    data:{ labels: v.strikes.map(fmtK),
+      datasets:[ { label:'Call OI', data:v.call_oi, backgroundColor: v.strikes.map(k => k===v.call_wall ? JADE : 'rgba(63,143,107,0.6)'), borderWidth:0 },
+                 { label:'Put OI',  data:v.put_oi,  backgroundColor: v.strikes.map(k => k===v.put_wall  ? OX   : 'rgba(176,65,62,0.6)'),  borderWidth:0 } ] },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{intersect:false, mode:'index'},
+      plugins:{ legend:{display:true,labels:{color:GRAY,font:{size:11}}},
+                tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw.toLocaleString('en-US',{maximumFractionDigits:1})} ${unit}`}},
+                wallLines:{strikes:v.strikes, lines} },
+      scales:{ x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:9},maxTicksLimit:14} },
+               y:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:10}}, title:{display:true,text:`Open Interest (${unit})`,color:GRAY,font:{size:10}} } } }
+  });
+  const pct = k => k ? `${((k/v.spot-1)*100).toFixed(1)}%` : '';
+  const sub = document.getElementById('sub-'+key);
+  sub.textContent = `${v.label} · Expiries ${v.expiries.join(', ')} · ±30% of spot ${fmtK(v.spot)}` + (v.note ? ` · ${v.note}` : '') + (v.stale ? ' · ⚠ STALE — last successful pull carried forward' : '');
+  document.getElementById('meta-'+key).innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;font-size:0.78rem">
+      <div><span style="color:var(--t618-jade)">▲ Call Wall</span><br><strong>${v.call_wall?fmtK(v.call_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.call_wall)}</span></div>
+      <div><span style="color:${VIOLET}">◉ Max Pain</span><br><strong>${v.max_pain?fmtK(v.max_pain):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.max_pain)}</span></div>
+      <div><span style="color:var(--t618-oxblood)">▼ Put Wall</span><br><strong>${v.put_wall?fmtK(v.put_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.put_wall)}</span></div>
+      <div><span style="color:var(--t618-warmgray)">Σ OI in window</span><br><strong>${v.total_oi.toLocaleString('en-US',{maximumFractionDigits:0})} ${unit}</strong></div>
+    </div>`;
 }
 
-// ── 5. LIQUIDATION CLUSTERS ──────────────────────────────────
-async function loadLiquidations(spot) {
+async function loadWalls(liveSpot) {
   try {
-    if (!spot) throw new Error('No spot');
-    // Derive from Deribit perpetual OI distribution and funding
-    // We model liquidation clusters using a normal distribution around spot
-    // weighted by typical leverage tiers (5x, 10x, 20x, 50x, 100x)
-    const funding = await loadFunding(); // also sets KPI
-
-    // Estimate clusters: longs cluster below spot, shorts above
-    // Using typical leverage ratios and assuming uniform distribution
-    const leverages = [5, 10, 20, 50, 100];
-    const labels = [];
-    const longLiqData = [];
-    const shortLiqData = [];
-
-    for (let pct = -30; pct <= 30; pct += 2.5) {
-      const price = spot * (1 + pct/100);
-      labels.push('$' + price.toLocaleString('en-US',{maximumFractionDigits:0}));
-      // Long liquidations occur BELOW spot (negative pct = long squeeze zone)
-      // Short liquidations occur ABOVE spot
-      let longWeight = 0, shortWeight = 0;
-      for (const lev of leverages) {
-        const liqPct = -100/lev; // liquidation distance for longs
-        const dist = Math.abs(pct - liqPct);
-        longWeight  += Math.exp(-0.5*(dist/4)**2); // gaussian cluster
-        shortWeight += Math.exp(-0.5*(pct + 100/lev)**2 / 16);
-      }
-      longLiqData.push(pct < 0 ? longWeight * 120 : 0);
-      shortLiqData.push(pct > 0 ? shortWeight * 80 : 0);
-    }
-
-    destroyChart('liqChart');
-    chartInstances['liqChart'] = new Chart(document.getElementById('liqChart'),{
-      type:'bar',
-      data:{
-        labels,
-        datasets:[
-          { label:'Long Liqs',  data:longLiqData,  backgroundColor:'rgba(176,65,62,0.7)',  borderWidth:0 },
-          { label:'Short Liqs', data:shortLiqData, backgroundColor:'rgba(63,143,107,0.7)', borderWidth:0 }
-        ]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{
-          legend:{display:true,labels:{color:GRAY,font:{size:11}}},
-          tooltip:{callbacks:{label:c=>`${c.dataset.label}: relative exposure ${c.raw.toFixed(0)}`}}
-        },
-        scales:{
-          x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:9},maxTicksLimit:10} },
-          y:{ grid:{color:ASH}, ticks:{display:false}, title:{display:true,text:'Relative Exposure',color:GRAY,font:{size:10}} }
-        }
-      }
-    });
-
-    // Key liquidation levels
-    const liq1x  = (spot * 0.90).toLocaleString('en-US',{maximumFractionDigits:0});
-    const liq2x  = (spot * 0.95).toLocaleString('en-US',{maximumFractionDigits:0});
-    const sLiq1x = (spot * 1.10).toLocaleString('en-US',{maximumFractionDigits:0});
-
-    document.getElementById('liqMeta').innerHTML =
-      `Key long liq clusters: ~$${liq2x} (−5% / 20× longs) · ~$${liq1x} (−10% / 10× longs)<br>
-       Key short liq cluster: ~$${sLiq1x} (+10% squeeze). Model is indicative; not exchange-reported data.`;
+    const w = await fetchJSON(WALLS_URL + '?t=' + Date.now());
+    const asOf = new Date(w.as_of);
+    const ageH = (Date.now() - asOf) / 3600000;
+    document.getElementById('wallsAsOf').textContent =
+      `Daily snapshot ${asOf.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'})}` +
+      ` · BTC ${usd(w.btc_spot)}` + (w.ibit_price ? ` · IBIT ${usd(w.ibit_price,2)} (${w.btc_per_share.toFixed(6)} BTC/sh)` : '') +
+      (ageH > 36 ? ' · ⚠ snapshot older than 36h' : '');
+    for (const k of ['deribit','ibit','ibit_btc']) renderWallsChart(k, w.venues[k], liveSpot);
+    return w;
   } catch(e) {
-    console.warn('Liq error',e);
+    console.warn('walls error', e);
+    document.getElementById('wallsAsOf').textContent = '⚠ daily snapshot unavailable: ' + e.message;
+    return null;
   }
 }
 
 // ── 6. FUNDING RATE ──────────────────────────────────────────
 async function loadFunding() {
   try {
-    const d = await fetchJSON('https://api.deribit.com/api/v2/public/get_funding_rate_value?instrument_name=BTC-PERPETUAL&start_timestamp=' + (Date.now()-8*3600*1000) + '&end_timestamp=' + Date.now());
+    const d = await fetchJSON(`${DERIBIT}/get_funding_rate_value?instrument_name=BTC-PERPETUAL&start_timestamp=${Date.now()-8*3600*1000}&end_timestamp=${Date.now()}`);
     const rate = d.result;
-    const rPct = (rate * 100).toFixed(4);
     const el = document.getElementById('kpi-funding');
-    el.textContent = (rate >= 0 ? '+' : '') + rPct + '%';
+    el.textContent = (rate >= 0 ? '+' : '') + (rate*100).toFixed(4) + '%';
     el.className = `kpi-val ${Math.abs(rate) < 0.001 ? 'neutral' : rate > 0 ? 'pos' : 'neg'}`;
     return rate;
-  } catch(e) {
-    document.getElementById('kpi-funding').textContent = 'N/A';
-    return 0;
-  }
+  } catch(e) { document.getElementById('kpi-funding').textContent = 'N/A'; return 0; }
 }
 
 // ── 7. SIGNALS ───────────────────────────────────────────────
-async function buildSignals(spot, iv, fg, opts) {
-  const signals = [];
-
-  // Fear & Greed
-  const fgVal = parseInt(document.getElementById('kpi-fg').textContent) || 50;
-  signals.push({
-    label: 'Fear & Greed',
-    value: fgVal,
-    badge: fgVal > 75 ? 'bear' : fgVal < 30 ? 'bull' : 'neutral',
-    text: fgVal > 75 ? 'Extreme Greed' : fgVal < 30 ? 'Extreme Fear' : 'Neutral'
-  });
-
-  // Funding
-  const fundingText = document.getElementById('kpi-funding').textContent;
-  const fundingVal = parseFloat(fundingText) || 0;
-  signals.push({
-    label: 'Perp Funding',
-    value: fundingText,
-    badge: fundingVal > 0.05 ? 'bear' : fundingVal < -0.02 ? 'bull' : 'neutral',
-    text: fundingVal > 0.05 ? 'Elevated Long Bias' : fundingVal < -0.02 ? 'Short Bias' : 'Balanced'
-  });
-
-  // IV regime
-  if (iv) {
-    signals.push({
-      label: 'ATM IV (30d)',
-      value: (iv*100).toFixed(1)+'%',
-      badge: iv > 0.9 ? 'warn' : iv < 0.45 ? 'warn' : 'neutral',
-      text: iv > 0.9 ? 'Vol Elevated' : iv < 0.45 ? 'Vol Compressed' : 'Normal Range'
-    });
+function buildSignals({spot, iv, rv30, fg, funding, walls}) {
+  const s = [];
+  if (fg != null) s.push({label:'Fear & Greed', badge: fg > 75 ? 'bear' : fg < 30 ? 'bull' : 'neutral', text: fg > 75 ? `Extreme Greed (${fg})` : fg < 30 ? `Extreme Fear (${fg})` : `Neutral (${fg})`});
+  const f = funding*100;
+  s.push({label:'Perp Funding', badge: f > 0.05 ? 'bear' : f < -0.02 ? 'bull' : 'neutral', text: f > 0.05 ? 'Elevated Long Bias' : f < -0.02 ? 'Short Bias' : 'Balanced'});
+  if (iv) s.push({label:'ATM IV (30d)', badge: (iv > 0.9 || iv < 0.45) ? 'warn' : 'neutral', text: iv > 0.9 ? 'Vol Elevated' : iv < 0.45 ? 'Vol Compressed' : 'Normal Range'});
+  if (iv && rv30) {
+    const spread = (iv - rv30)*100;
+    s.push({label:'IV − RV (30d)', badge: spread > 15 ? 'warn' : spread < -10 ? 'warn' : 'neutral',
+            text: `${spread>=0?'+':''}${spread.toFixed(1)} pts · ${spread > 15 ? 'options rich vs realized' : spread < -10 ? 'options cheap vs realized' : 'fairly priced'}`});
   }
-
-  // Options levels
-  if (opts) {
-    const { putWall, callWall, maxPain } = opts;
-    if (spot && putWall && callWall) {
-      const downside = ((putWall - spot)/spot*100).toFixed(1);
-      const upside   = ((callWall - spot)/spot*100).toFixed(1);
-      signals.push({
-        label: 'Gamma Range',
-        value: `${downside}% / +${upside}%`,
-        badge: 'neutral',
-        text: `Put $${putWall?.toLocaleString()} → Call $${callWall?.toLocaleString()}`
-      });
-    }
-    if (maxPain && spot) {
-      const mp = ((maxPain-spot)/spot*100).toFixed(1);
-      signals.push({
-        label: 'Max Pain',
-        value: '$' + maxPain?.toLocaleString(),
-        badge: maxPain < spot ? 'bear' : 'bull',
-        text: `${mp >= 0 ? '+' : ''}${mp}% vs spot`
-      });
-    }
+  const d = walls && walls.venues && walls.venues.deribit;
+  if (d && spot && d.put_wall && d.call_wall) {
+    s.push({label:'Gamma Range (Deribit)', badge:'neutral', text:`Put ${usd(d.put_wall)} → Call ${usd(d.call_wall)} (${((d.put_wall-spot)/spot*100).toFixed(1)}% / ${((d.call_wall-spot)/spot*100).toFixed(1)}%)`});
   }
-
-  // 48h vol outlook
-  if (iv && spot) {
-    const T48 = 48/(365*24);
-    const move1sd = (iv * Math.sqrt(T48) * 100).toFixed(1);
-    signals.push({
-      label: '48h 1σ Move',
-      value: `±${move1sd}%`,
-      badge: 'neutral',
-      text: `$${(spot*(1-iv*Math.sqrt(T48))).toLocaleString('en-US',{maximumFractionDigits:0})} – $${(spot*(1+iv*Math.sqrt(T48))).toLocaleString('en-US',{maximumFractionDigits:0})}`
-    });
+  if (d && d.max_pain && spot) {
+    const mp = (d.max_pain-spot)/spot*100;
+    s.push({label:'Max Pain (Deribit)', badge: d.max_pain < spot ? 'bear' : 'bull', text:`${usd(d.max_pain)} · ${mp>=0?'+':''}${mp.toFixed(1)}% vs spot`});
   }
-
+  const ib = walls && walls.venues && walls.venues.ibit_btc;
+  if (ib && ib.max_pain && spot) {
+    const mp = (ib.max_pain-spot)/spot*100;
+    s.push({label:'Max Pain (IBIT, BTC terms)', badge: ib.max_pain < spot ? 'bear' : 'bull', text:`${usd(ib.max_pain)} · ${mp>=0?'+':''}${mp.toFixed(1)}% vs spot`});
+  }
+  const T48 = 48/(365*24);
+  if (iv && spot) s.push({label:'48h 1σ Move (IV)', badge:'neutral', text:`±${(iv*Math.sqrt(T48)*100).toFixed(1)}% · ${usd(spot*Math.exp(-iv*Math.sqrt(T48)))} – ${usd(spot*Math.exp(iv*Math.sqrt(T48)))}`});
+  if (rv30 && spot) s.push({label:'48h 1σ Move (RV)', badge:'neutral', text:`±${(rv30*Math.sqrt(T48)*100).toFixed(1)}% · ${usd(spot*Math.exp(-rv30*Math.sqrt(T48)))} – ${usd(spot*Math.exp(rv30*Math.sqrt(T48)))}`});
   const badgeMap = { bull:'badge-bull', bear:'badge-bear', warn:'badge-warn', neutral:'badge-neutral' };
-  let html = '';
-  for (const s of signals) {
-    html += `<div>
-      <div class="signal-row">
-        <span class="signal-lbl">${s.label}</span>
-        <span class="badge ${badgeMap[s.badge]}">${s.text}</span>
-      </div>
-    </div>`;
-  }
-  document.getElementById('signalGrid').innerHTML = html || '<div class="error-state">No signals</div>';
+  document.getElementById('signalGrid').innerHTML = s.map(x => `<div><div class="signal-row"><span class="signal-lbl">${x.label}</span><span class="badge ${badgeMap[x.badge]}">${x.text}</span></div></div>`).join('') || '<div class="error-state">No signals</div>';
 }
 
-// ── UTILITY FUNCTIONS ────────────────────────────────────────
+// ── UTILITIES ────────────────────────────────────────────────
 function normCDF(x) {
   const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
-  const sign = x<0?-1:1;
-  x=Math.abs(x)/Math.sqrt(2);
+  const sign = x<0?-1:1; x=Math.abs(x)/Math.sqrt(2);
   const t=1/(1+p*x);
   const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
   return 0.5*(1+sign*y);
 }
-
-function dateStr(daysAgo) {
-  const d = new Date(); d.setDate(d.getDate()-daysAgo);
-  return d.toISOString().split('T')[0];
-}
-function dateMinus(n) { return dateStr(n); }
-
-function parseExpiry(s) {
-  // Deribit format: DDMMMYY e.g. 30MAY25
+function parseExpiry(s) {   // Deribit DDMMMYY → ms (08:00 UTC)
   const months = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
-  try {
-    const m = s.match(/^(\d+)([A-Z]+)(\d+)$/);
-    if (!m) return Infinity;
-    return new Date(2000+parseInt(m[3]), months[m[2]], parseInt(m[1]), 8, 0, 0).getTime();
-  } catch { return Infinity; }
+  const m = s.match(/^(\d+)([A-Z]+)(\d+)$/); if (!m) return Infinity;
+  return Date.UTC(2000+parseInt(m[3]), months[m[2]], parseInt(m[1]), 8, 0, 0);
 }
 
 // ── MAIN ORCHESTRATOR ────────────────────────────────────────
+let wallsCache = null, wallsLoadedAt = 0;
 async function runAll() {
   const btn = document.getElementById('refreshBtn');
-  btn.disabled = true;
-  btn.textContent = '↻ Refreshing…';
+  btn.disabled = true; btn.textContent = '↻ Refreshing…';
   nextRefresh = Date.now() + REFRESH_MS;
-
   try {
     stamp();
-    await loadFearGreed();
-    const spot = await loadSpot();
-    const sdResult = await loadSDLevels(spot);
-    const opts = await loadOptionsOI(spot);
-    await loadLiquidations(spot);
-    await buildSignals(spot, sdResult?.iv, null, opts);
+    const fg = await loadFearGreed();
+    let mkt = null;
+    try { mkt = await loadMarket(); }
+    catch(e) { console.warn('market error', e); sdError('sdTableIV', 'Spot unavailable: '+e.message); sdError('sdTableRV', 'Spot unavailable: '+e.message); }
+    let iv = null;
+    if (mkt) {
+      try { iv = (await loadIV(mkt.spot)).iv; renderSD('sdTableIV', mkt.spot, iv, `IV ${(iv*100).toFixed(1)}% (30d ATM, Deribit mark)`); }
+      catch(e) { console.warn('IV error', e); sdError('sdTableIV', e.message); }
+      if (mkt.rv30) renderSD('sdTableRV', mkt.spot, mkt.rv30, `RV30 ${(mkt.rv30*100).toFixed(1)}%` + (mkt.rv7 ? ` · RV7 ${(mkt.rv7*100).toFixed(1)}%` : '') + ' (daily close-to-close, annualized √365)');
+      else sdError('sdTableRV', 'Realized vol unavailable');
+    }
+    const funding = await loadFunding();
+    // option walls are a daily snapshot: re-read the JSON at most hourly, re-draw lines with live spot
+    if (!wallsCache || Date.now() - wallsLoadedAt > 3600000) { wallsCache = await loadWalls(mkt && mkt.spot); wallsLoadedAt = Date.now(); }
+    else if (wallsCache) for (const k of ['deribit','ibit','ibit_btc']) renderWallsChart(k, wallsCache.venues[k], mkt && mkt.spot);
+    buildSignals({spot: mkt && mkt.spot, iv, rv30: mkt && mkt.rv30, fg, funding, walls: wallsCache});
   } finally {
-    btn.disabled = false;
-    btn.textContent = '↻ Refresh Now';
+    btn.disabled = false; btn.textContent = '↻ Refresh Now';
   }
 }
-
-// ── BOOT ─────────────────────────────────────────────────────
 runAll();
 </script>
 </body>
