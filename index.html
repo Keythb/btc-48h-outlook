@@ -323,8 +323,8 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
     <div class="kpi-cell"><div class="kpi-val" id="kpi-chg">—</div><div class="kpi-lbl">24h Change</div></div>
     <div class="kpi-cell"><div class="kpi-val" id="kpi-fg">—</div><div class="kpi-lbl">Fear &amp; Greed</div></div>
     <div class="kpi-cell"><div class="kpi-val" id="kpi-funding">—</div><div class="kpi-lbl">Perp Funding /8h</div></div>
-    <div class="kpi-cell"><div class="kpi-val" id="kpi-iv">—</div><div class="kpi-lbl">ATM IV (30d)</div></div>
-    <div class="kpi-cell"><div class="kpi-val" id="kpi-rv">—</div><div class="kpi-lbl">Realized Vol (30d)</div></div>
+    <div class="kpi-cell"><div class="kpi-val" id="kpi-iv">—</div><div class="kpi-lbl">ATM IV (7d)</div></div>
+    <div class="kpi-cell"><div class="kpi-val" id="kpi-rv">—</div><div class="kpi-lbl">Realized Vol (7d)</div></div>
   </div>
 
   <!-- ROW 1: SD levels — implied vs realized -->
@@ -332,14 +332,14 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
     <div class="panel">
       <div class="eyebrow">Volatility Regime · Implied</div>
       <h3>48h Standard-Deviation Price Levels — Implied Vol</h3>
-      <div class="panel-sub">Based on 30d ATM implied volatility (Deribit) · Updated every 5 min</div>
+      <div class="panel-sub">Based on ATM implied volatility of the Deribit expiry nearest 7 days · Updated every 5 min</div>
       <div class="chart-wrap" style="height:220px"><canvas id="sdChartIV"></canvas></div>
       <div id="sdTableIV"><div class="loading"><div class="spinner"></div>Fetching IV &amp; spot…</div></div>
     </div>
     <div class="panel">
       <div class="eyebrow">Volatility Regime · Realized</div>
       <h3>48h Standard-Deviation Price Levels — Realized Vol</h3>
-      <div class="panel-sub">Based on 30d close-to-close realized volatility (Coinbase BTC-USD daily closes) · Updated every 5 min</div>
+      <div class="panel-sub">Based on 7-day realized volatility (168 hourly Coinbase BTC-USD closes, annualized) · Updated every 5 min</div>
       <div class="chart-wrap" style="height:220px"><canvas id="sdChartRV"></canvas></div>
       <div id="sdTableRV"><div class="loading"><div class="spinner"></div>Fetching price history…</div></div>
     </div>
@@ -360,13 +360,13 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
   <div class="panel-grid">
     <div class="panel panel-full">
       <h3>Open Interest by Strike — Deribit BTC Options</h3>
-      <div class="panel-sub" id="sub-deribit">Deribit · All expiries inside the next 7 days · Put wall / Call wall / Max pain</div>
+      <div class="panel-sub" id="sub-deribit">Deribit · All listed expiries · Put wall / Max pain / Call wall</div>
       <div class="chart-wrap tall"><canvas id="oi-deribit"></canvas></div>
       <div id="meta-deribit" style="margin-top:1rem"></div>
     </div>
     <div class="panel panel-full">
       <h3>Open Interest by Strike — IBIT Options</h3>
-      <div class="panel-sub" id="sub-ibit">Schwab · All expiries inside the next 7 days · Strikes in USD per share · OI in contracts</div>
+      <div class="panel-sub" id="sub-ibit">Schwab · All listed expiries · Strikes in USD per share · OI in contracts</div>
       <div class="chart-wrap tall"><canvas id="oi-ibit"></canvas></div>
       <div id="meta-ibit" style="margin-top:1rem"></div>
     </div>
@@ -392,7 +392,7 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
 
   <!-- DISCLOSURE -->
   <p class="disclosure">
-    TON618 Capital. This page is for internal research and information purposes only. It does not constitute investment advice, a solicitation, or an offer to buy or sell any security or digital asset. Spot, funding, implied and realized volatility are sourced live in the browser from public Deribit, Coinbase Exchange, and alternative.me endpoints; option open interest is a once-daily snapshot from Deribit (BTC options) and Schwab market data (IBIT options). Implied volatility is Deribit's mark IV for the at-the-money option nearest 30 days to expiry; realized volatility is the annualized standard deviation of the last 30 daily log returns of Coinbase BTC-USD closes. σ levels use a log-normal model and are estimates, not forecasts. Put/call walls, max pain, and the IBIT-to-BTC conversion (strike × BTC/IBIT price ratio at snapshot time) are model-based and subject to data error. Data may be delayed or incomplete. Past performance is not indicative of future results. Cryptocurrency markets involve substantial risk of loss. © 2026 TON618 Capital. All rights reserved.
+    TON618 Capital. This page is for internal research and information purposes only. It does not constitute investment advice, a solicitation, or an offer to buy or sell any security or digital asset. Spot, funding, implied and realized volatility are sourced live in the browser from public Deribit, Coinbase Exchange, and alternative.me endpoints; option open interest is a once-daily snapshot from Deribit (BTC options) and Schwab market data (IBIT options). Implied volatility is Deribit's mark IV for the at-the-money option in the expiry nearest 7 days; realized volatility is the annualized standard deviation of the last 168 hourly log returns of Coinbase BTC-USD closes (30-day figures shown for reference only). Option open interest spans all listed expiries with more than 24 hours to expiry, strikes within ±30% of spot. σ levels use a log-normal model and are estimates, not forecasts. Put/call walls, max pain, and the IBIT-to-BTC conversion (strike × BTC/IBIT price ratio at snapshot time) are model-based and subject to data error. Data may be delayed or incomplete. Past performance is not indicative of future results. Cryptocurrency markets involve substantial risk of loss. © 2026 TON618 Capital. All rights reserved.
   </p>
 
 </div>
@@ -461,14 +461,16 @@ async function loadMarket() {
   const spot = ix.result.index_price;
   document.getElementById('kpi-spot').textContent = usd(spot);
   const now = Date.now();
-  const out = { spot, rv30:null, rv7:null };
+  const out = { spot, rv7:null, rv30:null };
 
   // Coinbase Exchange candles (CORS-open): [time, low, high, open, close, volume], newest first
   const COINBASE = 'https://api.exchange.coinbase.com/products/BTC-USD/candles';
 
-  // hourly closes → 24h change
+  const rv = (arr, perYear) => { const m = arr.reduce((a,b)=>a+b,0)/arr.length; const v = arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1); return Math.sqrt(v*perYear); };
+
+  // hourly closes → 24h change + 7-day realized vol (168 hourly log returns, annualized √8760)
   try {
-    const h = (await fetchJSON(`${COINBASE}?granularity=3600`)).reverse();
+    const h = (await fetchJSON(`${COINBASE}?granularity=3600`)).reverse().filter(c => c[0]*1000 + 3600000 <= now);
     const ref = h.find(c => c[0]*1000 >= now - 24*3600000);
     if (ref) {
       const chg = (spot / ref[4] - 1) * 100;
@@ -476,42 +478,42 @@ async function loadMarket() {
       el.textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
       el.className = `kpi-val ${chg>=0?'pos':'neg'}`;
     }
-  } catch(e) { console.warn('hourly error', e); }
-
-  // daily closes → 30 log returns → realized vol (annualized, √365). Drops today's partial candle.
-  try {
-    const d = (await fetchJSON(`${COINBASE}?granularity=86400`)).reverse();
-    const full = d.filter(c => c[0]*1000 + 86400000 <= now);
-    const c = full.slice(-31).map(x => x[4]);
+    const c = h.slice(-169).map(x => x[4]);
     const rets = []; for (let i=1;i<c.length;i++) rets.push(Math.log(c[i]/c[i-1]));
-    const rv = arr => { const m = arr.reduce((a,b)=>a+b,0)/arr.length; const v = arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1); return Math.sqrt(v*365); };
-    if (rets.length >= 20) out.rv30 = rv(rets);
-    if (rets.length >= 7)  out.rv7  = rv(rets.slice(-7));
+    if (rets.length >= 100) out.rv7 = rv(rets, 24*365);
     const el = document.getElementById('kpi-rv');
-    el.textContent = out.rv30 ? (out.rv30*100).toFixed(1)+'%' : 'N/A';
+    el.textContent = out.rv7 ? (out.rv7*100).toFixed(1)+'%' : 'N/A';
     el.className = 'kpi-val neutral';
-  } catch(e) { console.warn('daily error', e); document.getElementById('kpi-rv').textContent = 'N/A'; }
+  } catch(e) { console.warn('hourly error', e); document.getElementById('kpi-rv').textContent = 'N/A'; }
+
+  // daily closes → 30-day realized vol for reference (drops today's partial candle)
+  try {
+    const d = (await fetchJSON(`${COINBASE}?granularity=86400`)).reverse().filter(c => c[0]*1000 + 86400000 <= now);
+    const c = d.slice(-31).map(x => x[4]);
+    const rets = []; for (let i=1;i<c.length;i++) rets.push(Math.log(c[i]/c[i-1]));
+    if (rets.length >= 20) out.rv30 = rv(rets, 365);
+  } catch(e) { console.warn('daily error', e); }
   return out;
 }
 
-// ── 3. IMPLIED VOL — 30d ATM mark IV from the Deribit book ───
+// ── 3. IMPLIED VOL — ATM mark IV, expiry nearest 7 days (Deribit book) ───
 async function loadIV(spot) {
   const t = await fetchJSON(`${DERIBIT}/get_book_summary_by_currency?currency=BTC&kind=option`);
-  const target = Date.now() + 30*86400000;
+  const target = Date.now() + 7*86400000;
   let best = null, bestD = Infinity;
   for (const inst of (t.result || [])) {
     if (!inst.instrument_name.endsWith('-C') || !inst.mark_iv) continue;
     const p = inst.instrument_name.split('-');
     const k = parseFloat(p[2]);
     if (Math.abs(k - spot) > spot*0.05) continue;
-    const d = Math.abs(parseExpiry(p[1]) - target) + Math.abs(k - spot);   // nearest 30d, then nearest ATM
+    const d = Math.abs(parseExpiry(p[1]) - target) + Math.abs(k - spot);   // nearest 7d, then nearest ATM
     if (d < bestD) { bestD = d; best = inst; }
   }
-  if (!best) throw new Error('No ATM option near 30d');
+  if (!best) throw new Error('No ATM option near 7d');
   const iv = best.mark_iv / 100;
   const el = document.getElementById('kpi-iv');
   el.textContent = (iv*100).toFixed(1)+'%'; el.className = 'kpi-val neutral';
-  return { iv, instrument: best.instrument_name };
+  return { iv, instrument: best.instrument_name, expiry: best.instrument_name.split('-')[1] };
 }
 
 // ── 4. SD LEVEL TABLE (shared by the IV and RV panels) ───────
@@ -612,8 +614,6 @@ function renderWallsChart(key, v, liveSpot) {
   if (v.call_wall) lines.push({v:v.call_wall, c:JADE, label:'CW', dash:[5,3]});
   if (v.put_wall)  lines.push({v:v.put_wall,  c:OX,   label:'PW', dash:[5,3]});
   if (v.max_pain)  lines.push({v:v.max_pain,  c:VIOLET, label:'Max Pain', dash:[6,2], ly:22, w:1.5});
-  if (v.all_call_wall && v.all_call_wall !== v.call_wall) lines.push({v:v.all_call_wall, c:JADE, label:'CW·all', dash:[1,3], ly:34});
-  if (v.all_put_wall && v.all_put_wall !== v.put_wall)   lines.push({v:v.all_put_wall,  c:OX,   label:'PW·all', dash:[1,3], ly:34});
   chartInstances[id] = new Chart(canvas, {
     type:'bar',
     data:{ labels: v.strikes.map(fmtK),
@@ -628,17 +628,16 @@ function renderWallsChart(key, v, liveSpot) {
   });
   const pct = k => k ? `${((k/v.spot-1)*100).toFixed(1)}%` : '';
   const sub = document.getElementById('sub-'+key);
-  sub.textContent = `${v.label} · Expiries ${v.expiries.join(', ')} · ±30% of spot ${fmtK(v.spot)}` + (v.note ? ` · ${v.note}` : '') + (v.stale ? ' · ⚠ STALE — last successful pull carried forward' : '');
+  sub.textContent = `${v.label} · ${v.n_expiries||v.expiries.length} expiries (${v.expiries[0]} → ${v.expiries[v.expiries.length-1]}) · strikes ±30% of spot ${fmtK(v.spot)}` + (v.note ? ` · ${v.note}` : '') + (v.stale ? ' · ⚠ STALE — last successful pull carried forward' : '');
+  const rowsT = (v.top_expiries||[]).map(t => `<tr class="${t.dominant?'current-row':''}"><td>${t.expiry}${t.dominant?' <span class="gold-txt">· dominant</span>':''}</td><td class="num">${(t.oi_share*100).toFixed(1)}%</td><td class="num neg">${t.put_wall?fmtK(t.put_wall):'—'}</td><td class="num" style="color:${VIOLET}">${t.max_pain?fmtK(t.max_pain):'—'}</td><td class="num pos">${t.call_wall?fmtK(t.call_wall):'—'}</td></tr>`).join('');
   document.getElementById('meta-'+key).innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;font-size:0.78rem">
-      <div><span style="color:var(--t618-jade)">▲ Call Wall</span><br><strong>${v.call_wall?fmtK(v.call_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.call_wall)}</span></div>
-      <div><span style="color:${VIOLET}">◉ Max Pain</span><br><strong>${v.max_pain?fmtK(v.max_pain):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.max_pain)}</span></div>
       <div><span style="color:var(--t618-oxblood)">▼ Put Wall</span><br><strong>${v.put_wall?fmtK(v.put_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.put_wall)}</span></div>
-      <div><span style="color:var(--t618-warmgray)">Σ OI in window</span><br><strong>${v.total_oi.toLocaleString('en-US',{maximumFractionDigits:0})} ${unit}</strong></div>
-      <div><span style="color:var(--t618-jade)">▲ Call Wall · all maturities</span><br><strong>${v.all_call_wall?fmtK(v.all_call_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.all_call_wall)}${v.all_call_wall_oi?' · '+v.all_call_wall_oi.toLocaleString('en-US',{maximumFractionDigits:0})+' '+unit:''}</span></div>
-      <div><span style="color:var(--t618-oxblood)">▼ Put Wall · all maturities</span><br><strong>${v.all_put_wall?fmtK(v.all_put_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.all_put_wall)}${v.all_put_wall_oi?' · '+v.all_put_wall_oi.toLocaleString('en-US',{maximumFractionDigits:0})+' '+unit:''}</span></div>
-      <div style="grid-column:span 2;color:var(--t618-warmgray)">All-maturity walls span every listed expiry${v.all_expiries?' ('+v.all_expiries+')':''} within ±30% of spot; dotted lines on the chart. Bars show the 7-day window only.</div>
-    </div>`;
+      <div><span style="color:${VIOLET}">◉ Max Pain</span><br><strong>${v.max_pain?fmtK(v.max_pain):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.max_pain)}</span></div>
+      <div><span style="color:var(--t618-jade)">▲ Call Wall</span><br><strong>${v.call_wall?fmtK(v.call_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.call_wall)}</span></div>
+      <div><span style="color:var(--t618-warmgray)">Σ OI · ${v.n_expiries||v.expiries.length} expiries</span><br><strong>${v.total_oi.toLocaleString('en-US',{maximumFractionDigits:0})} ${unit}</strong></div>
+    </div>
+    <table class="t618-table" style="margin-top:0.9rem"><thead><tr><th>Largest expiries by OI</th><th class="num">OI share</th><th class="num">Put wall</th><th class="num">Max pain</th><th class="num">Call wall</th></tr></thead><tbody>${rowsT}</tbody></table>`;
 }
 
 async function loadWalls(liveSpot) {
@@ -672,15 +671,15 @@ async function loadFunding() {
 }
 
 // ── 7. SIGNALS ───────────────────────────────────────────────
-function buildSignals({spot, iv, rv30, fg, funding, walls}) {
+function buildSignals({spot, iv, rv7, fg, funding, walls}) {
   const s = [];
   if (fg != null) s.push({label:'Fear & Greed', badge: fg > 75 ? 'bear' : fg < 30 ? 'bull' : 'neutral', text: fg > 75 ? `Extreme Greed (${fg})` : fg < 30 ? `Extreme Fear (${fg})` : `Neutral (${fg})`});
   const f = funding*100;
   s.push({label:'Perp Funding', badge: f > 0.05 ? 'bear' : f < -0.02 ? 'bull' : 'neutral', text: f > 0.05 ? 'Elevated Long Bias' : f < -0.02 ? 'Short Bias' : 'Balanced'});
-  if (iv) s.push({label:'ATM IV (30d)', badge: (iv > 0.9 || iv < 0.45) ? 'warn' : 'neutral', text: iv > 0.9 ? 'Vol Elevated' : iv < 0.45 ? 'Vol Compressed' : 'Normal Range'});
-  if (iv && rv30) {
-    const spread = (iv - rv30)*100;
-    s.push({label:'IV − RV (30d)', badge: spread > 15 ? 'warn' : spread < -10 ? 'warn' : 'neutral',
+  if (iv) s.push({label:'ATM IV (7d)', badge: (iv > 0.9 || iv < 0.45) ? 'warn' : 'neutral', text: iv > 0.9 ? 'Vol Elevated' : iv < 0.45 ? 'Vol Compressed' : 'Normal Range'});
+  if (iv && rv7) {
+    const spread = (iv - rv7)*100;
+    s.push({label:'IV − RV (7d)', badge: spread > 15 ? 'warn' : spread < -10 ? 'warn' : 'neutral',
             text: `${spread>=0?'+':''}${spread.toFixed(1)} pts · ${spread > 15 ? 'options rich vs realized' : spread < -10 ? 'options cheap vs realized' : 'fairly priced'}`});
   }
   const d = walls && walls.venues && walls.venues.deribit;
@@ -698,7 +697,7 @@ function buildSignals({spot, iv, rv30, fg, funding, walls}) {
   }
   const T48 = 48/(365*24);
   if (iv && spot) s.push({label:'48h 1σ Move (IV)', badge:'neutral', text:`±${(iv*Math.sqrt(T48)*100).toFixed(1)}% · ${usd(spot*Math.exp(-iv*Math.sqrt(T48)))} – ${usd(spot*Math.exp(iv*Math.sqrt(T48)))}`});
-  if (rv30 && spot) s.push({label:'48h 1σ Move (RV)', badge:'neutral', text:`±${(rv30*Math.sqrt(T48)*100).toFixed(1)}% · ${usd(spot*Math.exp(-rv30*Math.sqrt(T48)))} – ${usd(spot*Math.exp(rv30*Math.sqrt(T48)))}`});
+  if (rv7 && spot) s.push({label:'48h 1σ Move (RV)', badge:'neutral', text:`±${(rv7*Math.sqrt(T48)*100).toFixed(1)}% · ${usd(spot*Math.exp(-rv7*Math.sqrt(T48)))} – ${usd(spot*Math.exp(rv7*Math.sqrt(T48)))}`});
   const badgeMap = { bull:'badge-bull', bear:'badge-bear', warn:'badge-warn', neutral:'badge-neutral' };
   document.getElementById('signalGrid').innerHTML = s.map(x => `<div><div class="signal-row"><span class="signal-lbl">${x.label}</span><span class="badge ${badgeMap[x.badge]}">${x.text}</span></div></div>`).join('') || '<div class="error-state">No signals</div>';
 }
@@ -731,16 +730,16 @@ async function runAll() {
     catch(e) { console.warn('market error', e); sdError('sdTableIV', 'Spot unavailable: '+e.message); sdError('sdTableRV', 'Spot unavailable: '+e.message); }
     let iv = null;
     if (mkt) {
-      try { iv = (await loadIV(mkt.spot)).iv; renderSD('sdTableIV', mkt.spot, iv, `IV ${(iv*100).toFixed(1)}% (30d ATM, Deribit mark)`); }
+      try { const r = await loadIV(mkt.spot); iv = r.iv; renderSD('sdTableIV', mkt.spot, iv, `IV ${(iv*100).toFixed(1)}% (ATM mark, ${r.instrument} expiry ${r.expiry})`); }
       catch(e) { console.warn('IV error', e); sdError('sdTableIV', e.message); }
-      if (mkt.rv30) renderSD('sdTableRV', mkt.spot, mkt.rv30, `RV30 ${(mkt.rv30*100).toFixed(1)}%` + (mkt.rv7 ? ` · RV7 ${(mkt.rv7*100).toFixed(1)}%` : '') + ' (daily close-to-close, annualized √365)');
+      if (mkt.rv7) renderSD('sdTableRV', mkt.spot, mkt.rv7, `RV7 ${(mkt.rv7*100).toFixed(1)}% (hourly, annualized)` + (mkt.rv30 ? ` · RV30 ${(mkt.rv30*100).toFixed(1)}% for reference` : ''));
       else sdError('sdTableRV', 'Realized vol unavailable');
     }
     const funding = await loadFunding();
     // option walls are a daily snapshot: re-read the JSON at most hourly, re-draw lines with live spot
     if (!wallsCache || Date.now() - wallsLoadedAt > 3600000) { wallsCache = await loadWalls(mkt && mkt.spot); wallsLoadedAt = Date.now(); }
     else if (wallsCache) for (const k of ['deribit','ibit','ibit_btc']) renderWallsChart(k, wallsCache.venues[k], mkt && mkt.spot);
-    buildSignals({spot: mkt && mkt.spot, iv, rv30: mkt && mkt.rv30, fg, funding, walls: wallsCache});
+    buildSignals({spot: mkt && mkt.spot, iv, rv7: mkt && mkt.rv7, fg, funding, walls: wallsCache});
   } finally {
     btn.disabled = false; btn.textContent = '↻ Refresh Now';
   }
