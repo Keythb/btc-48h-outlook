@@ -333,24 +333,20 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
       <div class="eyebrow">Volatility Regime · Implied</div>
       <h3>48h Standard-Deviation Price Levels — Implied Vol</h3>
       <div class="panel-sub">Based on 30d ATM implied volatility (Deribit) · Updated every 5 min</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="sdChartIV"></canvas></div>
       <div id="sdTableIV"><div class="loading"><div class="spinner"></div>Fetching IV &amp; spot…</div></div>
     </div>
     <div class="panel">
       <div class="eyebrow">Volatility Regime · Realized</div>
       <h3>48h Standard-Deviation Price Levels — Realized Vol</h3>
       <div class="panel-sub">Based on 30d close-to-close realized volatility (Coinbase BTC-USD daily closes) · Updated every 5 min</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="sdChartRV"></canvas></div>
       <div id="sdTableRV"><div class="loading"><div class="spinner"></div>Fetching price history…</div></div>
     </div>
   </div>
 
   <!-- ROW 2: Price + F&G -->
   <div class="panel-grid">
-    <div class="panel">
-      <div class="eyebrow">Price Action</div>
-      <h3>7-Day Spot Price</h3>
-      <div class="panel-sub">Hourly close · Coinbase BTC-USD</div>
-      <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
-    </div>
     <div class="panel">
       <div class="eyebrow">Sentiment</div>
       <h3>Fear &amp; Greed — 30-Day History</h3>
@@ -470,27 +466,16 @@ async function loadMarket() {
   // Coinbase Exchange candles (CORS-open): [time, low, high, open, close, volume], newest first
   const COINBASE = 'https://api.exchange.coinbase.com/products/BTC-USD/candles';
 
-  // hourly closes, 7 days → chart + 24h change
+  // hourly closes → 24h change
   try {
-    const h = (await fetchJSON(`${COINBASE}?granularity=3600`)).filter(c => c[0]*1000 >= now - 7*86400000).reverse();
-    const ticks = h.map(c => c[0]*1000), closes = h.map(c => c[4]);
-    const i24 = ticks.findIndex(t => t >= now - 24*3600000);
-    if (i24 > 0) {
-      const chg = (spot / closes[i24] - 1) * 100;
+    const h = (await fetchJSON(`${COINBASE}?granularity=3600`)).reverse();
+    const ref = h.find(c => c[0]*1000 >= now - 24*3600000);
+    if (ref) {
+      const chg = (spot / ref[4] - 1) * 100;
       const el = document.getElementById('kpi-chg');
       el.textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
       el.className = `kpi-val ${chg>=0?'pos':'neg'}`;
     }
-    destroyChart('priceChart');
-    chartInstances['priceChart'] = new Chart(document.getElementById('priceChart'),{
-      type:'line',
-      data:{ labels: ticks.map(t => { const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}h`; }),
-        datasets:[{ label:'BTC/USD', data:closes, borderColor:GOLD, borderWidth:1.5, backgroundColor:'rgba(201,162,75,0.06)', pointRadius:0, fill:true, tension:0.2 }] },
-      options:{ responsive:true, maintainAspectRatio:false, interaction:{intersect:false, mode:'index'},
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>usd(c.raw)}}},
-        scales:{ x:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:10},maxTicksLimit:8} },
-                 y:{ grid:{color:ASH}, ticks:{color:GRAY,font:{size:11},callback:v=>usd(v)} } } }
-    });
   } catch(e) { console.warn('hourly error', e); }
 
   // daily closes → 30 log returns → realized vol (annualized, √365). Drops today's partial candle.
@@ -532,11 +517,32 @@ async function loadIV(spot) {
 // ── 4. SD LEVEL TABLE (shared by the IV and RV panels) ───────
 function renderSD(elId, S, sigma, footnote) {
   const T48 = 48/(365*24);
-  const lvl = z => S * Math.exp(z * sigma * Math.sqrt(T48));
+  const s48 = sigma * Math.sqrt(T48);
+  const lvl = z => S * Math.exp(z * s48);
+  const touchP = k => 2*(1-normCDF(k));                       // first-passage (reflection principle)
+  const fmtP = p => (p*100).toFixed(p<0.02?2:1)+'%';
+  // distribution chart: log-normal density across ±3.3σ, ±1σ band shaded, σ markers with touch prob
+  const chartId = elId.replace('sdTable','sdChart');
+  const pts=[], lo=lvl(-3.3), hi=lvl(3.3);
+  for (let i=0;i<=140;i++){ const x=lo+(hi-lo)*i/140; const z=Math.log(x/S)/s48; pts.push({x, y:Math.exp(-z*z/2)}); }
+  const band = pts.filter(p => p.x>=lvl(-1) && p.x<=lvl(1));
+  const lines=[{v:S, c:CHAMP, w:1.5, label:'Spot'}];
+  [1,2,3].forEach(k => { lines.push({v:lvl(k), c:GRAY, w:1, dash:[3,3], label:'+'+k+'σ · '+fmtP(touchP(k))}); lines.push({v:lvl(-k), c:GRAY, w:1, dash:[3,3], label:'−'+k+'σ · '+fmtP(touchP(k)), ly:22}); });
+  destroyChart(chartId);
+  chartInstances[chartId] = new Chart(document.getElementById(chartId), {
+    type:'line',
+    data:{ datasets:[
+      { label:'±1σ', data:band, parsing:false, fill:true, backgroundColor:'rgba(201,162,75,0.22)', borderWidth:0, pointRadius:0 },
+      { label:'density', data:pts, parsing:false, borderColor:GOLD, borderWidth:2, pointRadius:0, tension:0.3 } ] },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{intersect:false, mode:'index'},
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{title:c=>usd(c[0].parsed.x)+' ('+((c[0].parsed.x/S-1)*100).toFixed(2)+'%)', label:()=>''}}, xLines:{lines} },
+      scales:{ x:{ type:'linear', min:lo, max:hi, grid:{color:ASH}, ticks:{color:GRAY,font:{size:10},maxTicksLimit:8,callback:v=>usd(v)} },
+               y:{ display:false } } }
+  });
   const probUp   = v => (100*(1 - normCDF(Math.log(v/S)/(sigma*Math.sqrt(T48))))).toFixed(1);
   const probDown = v => (100*normCDF(Math.log(v/S)/(sigma*Math.sqrt(T48)))).toFixed(1);
   const rows = [[3,'up'],[2,'up'],[1,'up'],[0,'spot'],[-1,'down'],[-2,'down'],[-3,'down']];
-  let html = `<table class="t618-table"><thead><tr><th>Level</th><th class="num">Price (USD)</th><th class="num">vs Spot</th><th class="num">48h Prob</th></tr></thead><tbody>`;
+  let html = `<table class="t618-table"><thead><tr><th>Level</th><th class="num">Price (USD)</th><th class="num">vs Spot</th><th class="num">Close beyond</th><th class="num">Touch prob</th></tr></thead><tbody>`;
   for (const [z, side] of rows) {
     const price = side==='spot' ? S : lvl(z);
     const label = side==='spot' ? 'SPOT NOW' : `${z>0?'+':'−'}${Math.abs(z)}σ (48h)`;
@@ -544,9 +550,10 @@ function renderSD(elId, S, sigma, footnote) {
     const pctStr = side==='spot' ? '—' : (pct>0?'+':'')+pct+'%';
     const prob = side==='spot' ? '—' : side==='up' ? probUp(price)+'%' : probDown(price)+'%';
     const valCls = side==='spot' ? 'gold-txt' : side==='up' ? 'pos' : 'neg';
-    html += `<tr class="${side==='spot'?'current-row':''}"><td>${label}</td><td class="num ${valCls}">${usd(price)}</td><td class="num ${valCls}">${pctStr}</td><td class="num">${prob}</td></tr>`;
+    const touch = side==='spot' ? '—' : fmtP(touchP(Math.abs(z)));
+    html += `<tr class="${side==='spot'?'current-row':''}"><td>${label}</td><td class="num ${valCls}">${usd(price)}</td><td class="num ${valCls}">${pctStr}</td><td class="num">${prob}</td><td class="num">${touch}</td></tr>`;
   }
-  html += `</tbody></table><div style="margin-top:0.6rem;font-size:0.7rem;color:var(--t618-warmgray)">${footnote} · Log-normal model · Not a forecast.</div>`;
+  html += `</tbody></table><div style="margin-top:0.6rem;font-size:0.7rem;color:var(--t618-warmgray)">${footnote} · Log-normal model · Close beyond = P(48h close past level); Touch = P(level traded at least once in 48h, reflection principle) · Not a forecast.</div>`;
   document.getElementById(elId).innerHTML = html;
 }
 function sdError(elId, msg) { document.getElementById(elId).innerHTML = `<div class="error-state">⚠ ${msg}</div>`; }
@@ -574,6 +581,21 @@ const wallLines = {
   }
 };
 Chart.register(wallLines);
+const xLines = {
+  id:'xLines',
+  afterDatasetsDraw(chart) {
+    const cfg = chart.options.plugins.xLines; if (!cfg || !cfg.lines) return;
+    const {ctx, chartArea:a, scales:{x}} = chart;
+    cfg.lines.forEach(L => {
+      const p = x.getPixelForValue(L.v); if (p < a.left-1 || p > a.right+1) return;
+      ctx.save(); ctx.beginPath(); ctx.moveTo(p, a.top); ctx.lineTo(p, a.bottom);
+      ctx.lineWidth = L.w||1; ctx.strokeStyle = L.c; ctx.setLineDash(L.dash||[]); ctx.stroke();
+      ctx.setLineDash([]); ctx.fillStyle = L.c; ctx.font = 'bold 9.5px Inter, sans-serif'; ctx.textAlign='center';
+      ctx.fillText(L.label, p, a.top + (L.ly||10)); ctx.restore();
+    });
+  }
+};
+Chart.register(xLines);
 
 function renderWallsChart(key, v, liveSpot) {
   const id = 'oi-'+key, canvas = document.getElementById(id);
