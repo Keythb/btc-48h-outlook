@@ -612,6 +612,8 @@ function renderWallsChart(key, v, liveSpot) {
   if (v.call_wall) lines.push({v:v.call_wall, c:JADE, label:'CW', dash:[5,3]});
   if (v.put_wall)  lines.push({v:v.put_wall,  c:OX,   label:'PW', dash:[5,3]});
   if (v.max_pain)  lines.push({v:v.max_pain,  c:VIOLET, label:'Max Pain', dash:[6,2], ly:22, w:1.5});
+  if (v.all_call_wall && v.all_call_wall !== v.call_wall) lines.push({v:v.all_call_wall, c:JADE, label:'CW·all', dash:[1,3], ly:34});
+  if (v.all_put_wall && v.all_put_wall !== v.put_wall)   lines.push({v:v.all_put_wall,  c:OX,   label:'PW·all', dash:[1,3], ly:34});
   chartInstances[id] = new Chart(canvas, {
     type:'bar',
     data:{ labels: v.strikes.map(fmtK),
@@ -633,6 +635,9 @@ function renderWallsChart(key, v, liveSpot) {
       <div><span style="color:${VIOLET}">◉ Max Pain</span><br><strong>${v.max_pain?fmtK(v.max_pain):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.max_pain)}</span></div>
       <div><span style="color:var(--t618-oxblood)">▼ Put Wall</span><br><strong>${v.put_wall?fmtK(v.put_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.put_wall)}</span></div>
       <div><span style="color:var(--t618-warmgray)">Σ OI in window</span><br><strong>${v.total_oi.toLocaleString('en-US',{maximumFractionDigits:0})} ${unit}</strong></div>
+      <div><span style="color:var(--t618-jade)">▲ Call Wall · all maturities</span><br><strong>${v.all_call_wall?fmtK(v.all_call_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.all_call_wall)}${v.all_call_wall_oi?' · '+v.all_call_wall_oi.toLocaleString('en-US',{maximumFractionDigits:0})+' '+unit:''}</span></div>
+      <div><span style="color:var(--t618-oxblood)">▼ Put Wall · all maturities</span><br><strong>${v.all_put_wall?fmtK(v.all_put_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.all_put_wall)}${v.all_put_wall_oi?' · '+v.all_put_wall_oi.toLocaleString('en-US',{maximumFractionDigits:0})+' '+unit:''}</span></div>
+      <div style="grid-column:span 2;color:var(--t618-warmgray)">All-maturity walls span every listed expiry${v.all_expiries?' ('+v.all_expiries+')':''} within ±30% of spot; dotted lines on the chart. Bars show the 7-day window only.</div>
     </div>`;
 }
 
