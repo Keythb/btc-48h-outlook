@@ -161,6 +161,7 @@ header {
   gap: 1.5rem;
   margin-bottom: 1.5rem;
 }
+.panel-grid > * { min-width: 0; }
 .panel-full { grid-column: 1 / -1; }
 
 .panel {
@@ -210,7 +211,10 @@ table.t618-table tbody td {
   border-bottom: 1px solid rgba(58,58,64,0.6);
 }
 table.t618-table th.num,
-table.t618-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.t618-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* narrow screens: let a wide table scroll inside its panel instead of clipping */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll table.t618-table { min-width: 440px; }
 table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018); }
 .pos { color: var(--t618-jade); }
 .neg { color: var(--t618-oxblood); }
@@ -291,6 +295,10 @@ table.t618-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018);
   .kpi-grid { grid-template-columns: repeat(3, 1fr); }
   .panel-grid { grid-template-columns: 1fr; }
   .signal-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-cell { padding: 0.9rem 1rem; }
 }
 </style>
 </head>
@@ -545,7 +553,7 @@ function renderSD(elId, S, sigma, footnote) {
   const probUp   = v => (100*(1 - normCDF(Math.log(v/S)/(sigma*Math.sqrt(T48))))).toFixed(1);
   const probDown = v => (100*normCDF(Math.log(v/S)/(sigma*Math.sqrt(T48)))).toFixed(1);
   const rows = [[3,'up'],[2,'up'],[1,'up'],[0,'spot'],[-1,'down'],[-2,'down'],[-3,'down']];
-  let html = `<table class="t618-table"><thead><tr><th>Level</th><th class="num">Price (USD)</th><th class="num">vs Spot</th><th class="num">Close beyond</th><th class="num">Touch prob</th></tr></thead><tbody>`;
+  let html = `<div class="table-scroll"><table class="t618-table"><thead><tr><th>Level</th><th class="num">Price (USD)</th><th class="num">vs Spot</th><th class="num">Close beyond</th><th class="num">Touch prob</th></tr></thead><tbody>`;
   for (const [z, side] of rows) {
     const price = side==='spot' ? S : lvl(z);
     const label = side==='spot' ? 'SPOT NOW' : `${z>0?'+':'−'}${Math.abs(z)}σ (48h)`;
@@ -556,7 +564,7 @@ function renderSD(elId, S, sigma, footnote) {
     const touch = side==='spot' ? '—' : fmtP(touchP(Math.abs(z)));
     html += `<tr class="${side==='spot'?'current-row':''}"><td>${label}</td><td class="num ${valCls}">${usd(price)}</td><td class="num ${valCls}">${pctStr}</td><td class="num">${prob}</td><td class="num">${touch}</td></tr>`;
   }
-  html += `</tbody></table><div style="margin-top:0.6rem;font-size:0.7rem;color:var(--t618-warmgray)">${footnote} · Log-normal model · Close beyond = P(48h close past level); Touch = P(level traded at least once in 48h, reflection principle) · Not a forecast.</div>`;
+  html += `</tbody></table></div><div style="margin-top:0.6rem;font-size:0.7rem;color:var(--t618-warmgray)">${footnote} · Log-normal model · Close beyond = P(48h close past level); Touch = P(level traded at least once in 48h, reflection principle) · Not a forecast.</div>`;
   document.getElementById(elId).innerHTML = html;
 }
 function sdError(elId, msg) { document.getElementById(elId).innerHTML = `<div class="error-state">⚠ ${msg}</div>`; }
@@ -650,7 +658,7 @@ function renderWallsChart(key, v, liveSpot) {
       <div><span style="color:var(--t618-jade)">▲ Call Wall</span><br><strong>${v.call_wall?fmtK(v.call_wall):'—'}</strong> <span style="color:var(--t618-warmgray)">${pct(v.call_wall)}</span>${cwNote}</div>
       <div><span style="color:var(--t618-warmgray)">Σ OI · ${v.n_expiries||v.expiries.length} expiries</span><br><strong>${v.total_oi.toLocaleString('en-US',{maximumFractionDigits:0})} ${unit}</strong></div>
     </div>
-    <table class="t618-table" style="margin-top:0.9rem"><thead><tr><th>Largest expiries by OI</th><th class="num">OI share</th><th class="num">Put wall</th><th class="num">Max pain</th><th class="num">Call wall</th></tr></thead><tbody>${rowsT}</tbody></table>${anyFlag?`<div style="font-size:0.7rem;color:var(--t618-warmgray);margin-top:4px">⚠ = wall is on the wrong side of spot (in the money) — it marks where OI sits, not support/resistance.</div>`:''}`;
+    <div class="table-scroll" style="margin-top:0.9rem"><table class="t618-table"><thead><tr><th>Largest expiries by OI</th><th class="num">OI share</th><th class="num">Put wall</th><th class="num">Max pain</th><th class="num">Call wall</th></tr></thead><tbody>${rowsT}</tbody></table></div>${anyFlag?`<div style="font-size:0.7rem;color:var(--t618-warmgray);margin-top:4px">⚠ = wall is on the wrong side of spot (in the money) — it marks where OI sits, not support/resistance.</div>`:''}`;
 }
 
 async function loadWalls(liveSpot) {
